@@ -10,6 +10,8 @@ from .storage import save_kernel, find_kernel
 from .validation import create_test_suite, validate_kernel
 from .prompts import build_system_prompt, build_user_prompt, extract_kernel_from_response, get_example_kernels, build_feedback_aware_prompt
 from .webgpu_executor import execute_kernel
+from .knowledge_base import add_successful_kernel, get_relevant_success_examples
+from datetime import datetime
 
 
 def analyze_previous_attempts(attempts: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -226,7 +228,8 @@ def attempt_generation(
             "input_shapes": input_shapes,
             "output_shapes": output_shapes,
             "parameter_shapes": param_shapes or {},
-            "hyperparameters": hyperparameters or {}
+            "hyperparameters": hyperparameters or {},
+            "timestamp": datetime.now().isoformat()
         }
     }
 
@@ -305,8 +308,13 @@ def generate_kernel(
     last_error = None
     previous_attempts = []
 
-    # TODO: In future, load success_examples from a knowledge base
-    success_examples = None
+    # Load relevant success examples from knowledge base
+    success_examples = get_relevant_success_examples(
+        operation=operation,
+        input_shapes=input_shapes,
+        cache_dir=config["cache_dir"],
+        max_examples=2
+    )
 
     for attempt in range(max_samples):
         print(f"Generation attempt {attempt + 1}/{max_samples}")
@@ -332,6 +340,14 @@ def generate_kernel(
             # Return path if validation passed
             if kernel_data["validation"]["all_passed"]:
                 print("✓ Kernel validated successfully!")
+
+                # Add successful kernel to knowledge base
+                try:
+                    add_successful_kernel(kernel_data, config["cache_dir"])
+                    print("✓ Added to knowledge base for future learning")
+                except Exception as e:
+                    print(f"Warning: Failed to add kernel to knowledge base: {e}")
+
                 return kernel_path
             else:
                 print(f"✗ Validation failed: {kernel_data['validation']['num_passed']}/{kernel_data['validation']['num_total']} tests passed")
