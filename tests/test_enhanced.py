@@ -3,9 +3,6 @@
 import os
 import sys
 import numpy as np
-import torch
-import torch.nn.functional as F
-from pathlib import Path
 
 # Mock webgpu execution for testing
 import yolokernelgen.webgpu_executor
@@ -83,7 +80,7 @@ def test_enhanced_conv2d():
         has_nested_loops = kernel_source.count("for") >= 3  # ic, kh, kw loops
         has_bias_init = "bias[" in kernel_source
 
-        print(f"\n=== Kernel Quality ===")
+        print("\n=== Kernel Quality ===")
         print(f"NCHW layout awareness: {has_nchw_comment}")
         print(f"Proper tensor indexing: {has_proper_indexing}")
         print(f"Has convolution loops: {has_nested_loops}")
@@ -140,7 +137,7 @@ def test_enhanced_matmul():
         has_row_col = ("row" in kernel_source and "col" in kernel_source) or ("i" in kernel_source and "j" in kernel_source)
         has_k_loop = kernel_source.count("for") >= 1
 
-        print(f"\n=== MatMul Quality ===")
+        print("\n=== MatMul Quality ===")
         print(f"Has dot product accumulation: {has_dot_product}")
         print(f"Proper row/column indexing: {has_row_col}")
         print(f"Has inner dimension loop: {has_k_loop}")
@@ -188,7 +185,7 @@ def test_enhanced_relu():
         has_max_function = "max(" in kernel_source
         has_zero_clamp = "0.0" in kernel_source
 
-        print(f"\n=== ReLU Quality ===")
+        print("\n=== ReLU Quality ===")
         print(f"Uses max function: {has_max_function}")
         print(f"Clamps to zero: {has_zero_clamp}")
 
@@ -210,7 +207,7 @@ if __name__ == "__main__":
     successful = [success1, success2, success3].count(True)
     total = 3
 
-    print(f"\n=== Summary ===")
+    print("\n=== Summary ===")
     print(f"Successful: {successful}/{total}")
 
     if successful == total:

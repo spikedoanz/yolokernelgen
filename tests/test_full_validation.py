@@ -1,11 +1,7 @@
 """Test kernel generation WITH full validation against PyTorch ground truth."""
 
 import os
-import sys
-import numpy as np
-import torch
 import torch.nn.functional as F
-from pathlib import Path
 
 # Use the real webgpu executor (with dawn-python)
 from yolokernelgen import generate_kernel, load_kernel
@@ -174,7 +170,7 @@ if __name__ == "__main__":
 
     successful = [relu_success, add_success, conv_success].count(True)
 
-    print(f"\n=== Final Results ===")
+    print("\n=== Final Results ===")
     print(f"ReLU validation: {'✓' if relu_success else '✗'}")
     print(f"Add validation: {'✓' if add_success else '✗'}")
     print(f"Conv2D validation: {'✓' if conv_success else '✗'}")
@@ -184,4 +180,4 @@ if __name__ == "__main__":
     else:
         print(f"\n⚠️ {3-successful} validation(s) failed. This reveals kernel correctness issues.")
 
-    print(f"\nThis is why torch_fn validation is crucial - it catches bugs!")
+    print("\nThis is why torch_fn validation is crucial - it catches bugs!")

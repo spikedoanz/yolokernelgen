@@ -4,7 +4,6 @@ import os
 import sys
 import numpy as np
 import torch
-from pathlib import Path
 
 from yolokernelgen import generate_kernel, load_kernel, execute_kernel
 
@@ -74,7 +73,7 @@ def test_add_one():
         mean_diff = np.mean(np.abs(result - torch_result))
         matches = np.allclose(result, torch_result, rtol=1e-5)
 
-        print(f"\n=== Validation Results ===")
+        print("\n=== Validation Results ===")
         print(f"Results match PyTorch: {matches}")
         print(f"Max difference: {max_diff:.2e}")
         print(f"Mean difference: {mean_diff:.2e}")
@@ -82,7 +81,7 @@ def test_add_one():
         # Show validation details
         if "validation" in kernel_data:
             val = kernel_data["validation"]
-            print(f"\nValidation suite results:")
+            print("\nValidation suite results:")
             print(f"  Passed: {val['num_passed']}/{val['num_total']} tests")
             if val['test_cases']:
                 for i, test in enumerate(val['test_cases'][:3]):  # Show first 3
@@ -93,7 +92,7 @@ def test_add_one():
         # Show token usage
         if "llm_response" in kernel_data and "usage" in kernel_data["llm_response"]:
             usage = kernel_data["llm_response"]["usage"]
-            print(f"\nToken usage:")
+            print("\nToken usage:")
             print(f"  Prompt tokens: {usage.get('prompt_tokens', 'N/A')}")
             print(f"  Completion tokens: {usage.get('completion_tokens', 'N/A')}")
             print(f"  Total tokens: {usage.get('total_tokens', 'N/A')}")

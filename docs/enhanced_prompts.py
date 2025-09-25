@@ -1,6 +1,5 @@
 """Enhanced prompt generation addressing Opus feedback."""
 
-import re
 from typing import Dict, List, Any, Optional
 
 

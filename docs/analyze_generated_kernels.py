@@ -1,7 +1,5 @@
 """Analyze the quality of generated kernels without validation dependency."""
 
-import os
-import json
 from pathlib import Path
 from yolokernelgen import list_kernels, load_kernel
 
@@ -136,7 +134,7 @@ def analyze_all_generated_kernels():
         total_tokens = sum(r["usage"].get("total_tokens", 0) for r in results.values())
         operations = set(r["operation"] for r in results.values())
 
-        print(f"=== Summary ===")
+        print("=== Summary ===")
         print(f"Operations tested: {', '.join(sorted(operations))}")
         print(f"Average quality score: {avg_quality:.2f}")
         print(f"Total tokens used: {total_tokens:,}")
@@ -169,10 +167,10 @@ def show_best_kernel():
             continue
 
     if best_kernel:
-        print(f"\n=== Best Generated Kernel ===")
+        print("\n=== Best Generated Kernel ===")
         print(f"Operation: {best_info['operation']}")
         print(f"Quality Score: {best_score:.2f}")
-        print(f"Code:")
+        print("Code:")
         print("-" * 60)
         print(best_kernel)
         print("-" * 60)

@@ -8,8 +8,6 @@ This example demonstrates the basics of YoloKernelGen:
 """
 
 import os
-import numpy as np
-import torch
 import torch.nn.functional as F
 
 from yolokernelgen import generate_kernel, load_kernel
@@ -52,7 +50,7 @@ def example_add_one():
 
         # Show the generated WGSL kernel (first 300 chars)
         kernel_code = kernel_data['llm_response']['extracted_kernel']
-        print(f"\nGenerated WGSL kernel (preview):")
+        print("\nGenerated WGSL kernel (preview):")
         print("-" * 40)
         print(kernel_code[:300] + "...")
         print("-" * 40)
@@ -119,7 +117,7 @@ if __name__ == "__main__":
     success1 = example_add_one()
     success2 = example_relu()
 
-    print(f"\n=== Results ===")
+    print("\n=== Results ===")
     if success1 and success2:
         print("🎉 Both examples completed successfully!")
         print("\nKey takeaways:")
@@ -129,4 +127,4 @@ if __name__ == "__main__":
     else:
         print("❌ Some examples failed - check your setup")
 
-    print(f"\nNext: Try example_02_tensor_operations.py for matrix operations!")
+    print("\nNext: Try example_02_tensor_operations.py for matrix operations!")

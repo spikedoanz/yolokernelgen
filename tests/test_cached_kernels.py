@@ -1,6 +1,5 @@
 """Test using cached generated kernels with actual execution pipeline."""
 
-import os
 import sys
 import numpy as np
 from pathlib import Path
@@ -74,7 +73,7 @@ def demo_kernel_pipeline():
                 input_bytes = test_input.tobytes()
                 total_elements = test_input.size
 
-                print(f"\n=== Test Data ===")
+                print("\n=== Test Data ===")
                 print(f"Input shape: {test_input.shape}")
                 print(f"Total elements: {total_elements}")
                 print(f"Sample values: {test_input.flat[:5]}")
@@ -84,7 +83,7 @@ def demo_kernel_pipeline():
                 try:
                     conv_output_bytes = execute_simple_kernel(conv2d_source, input_bytes, total_elements)
                     conv_output = np.frombuffer(conv_output_bytes, dtype=np.float32).reshape(test_input.shape)
-                    print(f"✓ Conv2D executed successfully")
+                    print("✓ Conv2D executed successfully")
                     print(f"Output range: [{np.min(conv_output):.3f}, {np.max(conv_output):.3f}]")
 
                     # DEMO: Run ReLU kernel on conv output
@@ -92,7 +91,7 @@ def demo_kernel_pipeline():
                     relu_input_bytes = conv_output.tobytes()
                     relu_output_bytes = execute_simple_kernel(relu_source, relu_input_bytes, total_elements)
                     relu_output = np.frombuffer(relu_output_bytes, dtype=np.float32).reshape(test_input.shape)
-                    print(f"✓ ReLU executed successfully")
+                    print("✓ ReLU executed successfully")
                     print(f"Output range: [{np.min(relu_output):.3f}, {np.max(relu_output):.3f}]")
 
                     # Verify ReLU behavior (no negative values)
@@ -104,10 +103,10 @@ def demo_kernel_pipeline():
                     conv2_input_bytes = relu_output.tobytes()
                     conv2_output_bytes = execute_simple_kernel(conv2d_source, conv2_input_bytes, total_elements)
                     conv2_output = np.frombuffer(conv2_output_bytes, dtype=np.float32).reshape(test_input.shape)
-                    print(f"✓ Second Conv2D executed successfully")
+                    print("✓ Second Conv2D executed successfully")
                     print(f"Final output range: [{np.min(conv2_output):.3f}, {np.max(conv2_output):.3f}]")
 
-                    print(f"\n🎉 Complete pipeline successful: Input -> Conv2D -> ReLU -> Conv2D")
+                    print("\n🎉 Complete pipeline successful: Input -> Conv2D -> ReLU -> Conv2D")
                     print(f"Processed {total_elements:,} elements through 3 kernel operations")
 
                     return True
@@ -130,7 +129,7 @@ def show_kernel_quality_summary():
 
     all_kernels = list_kernels()
 
-    print(f"\n=== Cached Kernel Summary ===")
+    print("\n=== Cached Kernel Summary ===")
     print(f"Total kernels: {len(all_kernels)}")
 
     operations = {}

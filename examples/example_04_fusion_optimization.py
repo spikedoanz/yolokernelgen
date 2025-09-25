@@ -9,8 +9,6 @@ This example demonstrates advanced features:
 """
 
 import os
-import numpy as np
-import torch
 import torch.nn.functional as F
 
 from yolokernelgen import generate_kernel, load_kernel, list_kernels
@@ -189,17 +187,17 @@ def analyze_generation_performance():
             except:
                 continue
 
-        print(f"\nToken usage analysis:")
+        print("\nToken usage analysis:")
         print(f"Total tokens used: {total_tokens:,}")
         print(f"Average per kernel: {total_tokens/len(correct_kernels):.0f} tokens")
 
-        print(f"\nBy operation type:")
+        print("\nBy operation type:")
         for op, stats in operation_stats.items():
             avg_tokens = stats["tokens"] / stats["count"]
             print(f"  {op}: {stats['count']} kernels, avg {avg_tokens:.0f} tokens")
 
     # Show complexity trends
-    print(f"\nComplexity observations:")
+    print("\nComplexity observations:")
     print("  - Simple ops (add, relu): ~600-800 tokens")
     print("  - Matrix ops (matmul): ~800-1000 tokens")
     print("  - Convolutions: ~1000-1400 tokens")
@@ -226,7 +224,7 @@ if __name__ == "__main__":
     # Analyze what we've accomplished
     analyze_generation_performance()
 
-    print(f"\n=== Results ===")
+    print("\n=== Results ===")
     if success1 and success2:
         print("🎉 Advanced kernel generation successful!")
         print("\nProfessional capabilities demonstrated:")
@@ -239,4 +237,4 @@ if __name__ == "__main__":
         print("⚠️ Some advanced examples had issues")
         print("   This is normal - fusion kernels are cutting-edge!")
 
-    print(f"\nFramework complete! Check examples/ and tests/ for more details.")
+    print("\nFramework complete! Check examples/ and tests/ for more details.")

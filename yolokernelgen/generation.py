@@ -1,14 +1,11 @@
 """Main kernel generation pipeline."""
 
 import os
-import json
 import hashlib
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Callable
-from datetime import datetime
 
-from .config import default_config, load_config
-from .naming import generate_filename, compute_hash
+from .config import default_config
 from .storage import save_kernel, find_kernel
 from .validation import create_test_suite, validate_kernel
 from .prompts import build_system_prompt, build_user_prompt, extract_kernel_from_response, get_example_kernels
@@ -225,7 +222,7 @@ def generate_kernel(
 
             # Return path if validation passed
             if kernel_data["validation"]["all_passed"]:
-                print(f"✓ Kernel validated successfully!")
+                print("✓ Kernel validated successfully!")
                 return kernel_path
             else:
                 print(f"✗ Validation failed: {kernel_data['validation']['num_passed']}/{kernel_data['validation']['num_total']} tests passed")

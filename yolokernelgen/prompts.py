@@ -1,7 +1,7 @@
 """LLM prompt generation for kernel translation."""
 
 import re
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Optional
 
 
 def build_system_prompt() -> str:

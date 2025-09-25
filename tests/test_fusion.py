@@ -3,9 +3,6 @@
 import os
 import sys
 import numpy as np
-import torch
-import torch.nn.functional as F
-from pathlib import Path
 
 # Mock webgpu execution for testing
 import yolokernelgen.webgpu_executor
@@ -61,7 +58,7 @@ def test_conv2d_relu_fusion():
     config["max_samples"] = 1
 
     try:
-        print(f"Testing fused Conv2D + ReLU")
+        print("Testing fused Conv2D + ReLU")
         print(f"Input: {input_shapes[0]} -> Output: {output_shapes[0]}")
 
         kernel_path = generate_kernel(
@@ -88,7 +85,7 @@ def test_conv2d_relu_fusion():
         has_bias_add = "bias[" in kernel_source
         single_pass = "output[" in kernel_source and kernel_source.count("output[") <= 2  # Only one write to output
 
-        print(f"\n=== Fusion Analysis ===")
+        print("\n=== Fusion Analysis ===")
         print(f"Has convolution loops: {has_conv_loops}")
         print(f"Has ReLU activation: {has_relu_activation}")
         print(f"Handles bias: {has_bias_add}")

@@ -2,7 +2,6 @@
 
 import os
 import sys
-from pathlib import Path
 
 # Mock the webgpu_executor to test LLM generation without pydawn
 import yolokernelgen.webgpu_executor
@@ -81,7 +80,7 @@ def test_llm_generation():
         # Show token usage
         if "usage" in kernel_data["llm_response"]:
             usage = kernel_data["llm_response"]["usage"]
-            print(f"\n=== Token Usage ===")
+            print("\n=== Token Usage ===")
             print(f"Prompt tokens: {usage.get('prompt_tokens', 'N/A')}")
             print(f"Completion tokens: {usage.get('completion_tokens', 'N/A')}")
             print(f"Total tokens: {usage.get('total_tokens', 'N/A')}")
@@ -91,14 +90,14 @@ def test_llm_generation():
         for dim in output_shapes[0]:
             total_elements *= dim
 
-        print(f"\n=== Kernel Details ===")
+        print("\n=== Kernel Details ===")
         print(f"Expected total elements: {total_elements}")
 
         # Check if kernel has correct total elements constant
         if f"{total_elements}u" in kernel_source:
-            print(f"✓ Kernel has correct TOTAL_ELEMENTS constant")
+            print("✓ Kernel has correct TOTAL_ELEMENTS constant")
         else:
-            print(f"✗ Kernel might not have correct TOTAL_ELEMENTS constant")
+            print("✗ Kernel might not have correct TOTAL_ELEMENTS constant")
 
         # Basic validation of WGSL structure
         is_valid = all([has_group, has_binding, has_compute, has_workgroup, has_main])

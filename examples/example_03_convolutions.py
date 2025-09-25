@@ -9,8 +9,6 @@ This example demonstrates neural network layer generation:
 """
 
 import os
-import numpy as np
-import torch
 import torch.nn.functional as F
 
 from yolokernelgen import generate_kernel, load_kernel
@@ -210,7 +208,7 @@ if __name__ == "__main__":
     # Show detailed analysis
     show_conv_kernel_details()
 
-    print(f"\n=== Results ===")
+    print("\n=== Results ===")
     if success1 and success2:
         print("🎉 Convolution kernels generated successfully!")
         print("\nAmazing achievements:")
@@ -223,4 +221,4 @@ if __name__ == "__main__":
         print("❌ Some convolution operations failed")
         print("   Convolutions are challenging - try adjusting max_samples in config")
 
-    print(f"\nNext: Try example_04_fusion_optimization.py for advanced kernels!")
+    print("\nNext: Try example_04_fusion_optimization.py for advanced kernels!")

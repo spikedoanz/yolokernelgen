@@ -2,7 +2,7 @@
 
 import numpy as np
 import torch
-from typing import List, Dict, Any, Callable, Tuple, Optional
+from typing import List, Dict, Any, Callable, Optional
 
 
 def generate_test_inputs(

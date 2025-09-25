@@ -8,7 +8,6 @@ This example demonstrates more complex operations:
 """
 
 import os
-import numpy as np
 import torch
 
 from yolokernelgen import generate_kernel, load_kernel, list_kernels
@@ -121,7 +120,7 @@ def show_generated_kernels():
         print(f"  {op}: {count} kernel(s)")
 
     # Show cache directory info
-    print(f"\nKernels cached in: .cache/yolokernelgen/generated/")
+    print("\nKernels cached in: .cache/yolokernelgen/generated/")
     print("  - Filenames encode operation, shapes, and parameters")
     print("  - 'c_' prefix means validated/correct")
     print("  - 'r_' prefix means rejected/failed validation")
@@ -142,7 +141,7 @@ if __name__ == "__main__":
     # Show what we've built so far
     show_generated_kernels()
 
-    print(f"\n=== Results ===")
+    print("\n=== Results ===")
     if success1 and success2:
         print("🎉 Tensor operations completed successfully!")
         print("\nKey insights:")
@@ -152,4 +151,4 @@ if __name__ == "__main__":
     else:
         print("❌ Some tensor operations failed")
 
-    print(f"\nNext: Try example_03_convolutions.py for neural network layers!")
+    print("\nNext: Try example_03_convolutions.py for neural network layers!")

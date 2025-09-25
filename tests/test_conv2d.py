@@ -3,9 +3,6 @@
 import os
 import sys
 import numpy as np
-import torch
-import torch.nn.functional as F
-from pathlib import Path
 
 # Mock webgpu execution for testing LLM generation only
 import yolokernelgen.webgpu_executor
@@ -103,7 +100,7 @@ def test_conv2d_simple():
 
         # Token usage
         usage = kernel_data["llm_response"]["usage"]
-        print(f"\n=== Token Usage ===")
+        print("\n=== Token Usage ===")
         print(f"Total tokens: {usage.get('total_tokens', 'N/A')}")
         print(f"Prompt/Completion: {usage.get('prompt_tokens', 'N/A')}/{usage.get('completion_tokens', 'N/A')}")
 
