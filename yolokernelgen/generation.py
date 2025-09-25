@@ -337,16 +337,23 @@ def generate_kernel(
             kernel_path = save_kernel(kernel_data, config["cache_dir"])
             print(f"Kernel saved: {kernel_path}")
 
-            # Return path if validation passed
-            if kernel_data["validation"]["all_passed"]:
-                print("✓ Kernel validated successfully!")
+            # Check validation results
+            validation_passed = kernel_data["validation"]["all_passed"]
+            has_validation = kernel_data["validation"]["num_total"] > 0
 
-                # Add successful kernel to knowledge base
-                try:
-                    add_successful_kernel(kernel_data, config["cache_dir"])
-                    print("✓ Added to knowledge base for future learning")
-                except Exception as e:
-                    print(f"Warning: Failed to add kernel to knowledge base: {e}")
+            if validation_passed or not has_validation:
+                if has_validation:
+                    print("✓ Kernel validated successfully!")
+                else:
+                    print("✓ Kernel generated successfully (validation skipped)")
+
+                # Add successful kernel to knowledge base (only if validated)
+                if has_validation and validation_passed:
+                    try:
+                        add_successful_kernel(kernel_data, config["cache_dir"])
+                        print("✓ Added to knowledge base for future learning")
+                    except Exception as e:
+                        print(f"Warning: Failed to add kernel to knowledge base: {e}")
 
                 return kernel_path
             else:
