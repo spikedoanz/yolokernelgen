@@ -8,8 +8,95 @@ from typing import Dict, List, Any, Optional, Callable
 from .config import default_config
 from .storage import save_kernel, find_kernel
 from .validation import create_test_suite, validate_kernel
-from .prompts import build_system_prompt, build_user_prompt, extract_kernel_from_response, get_example_kernels
+from .prompts import build_system_prompt, build_user_prompt, extract_kernel_from_response, get_example_kernels, build_feedback_aware_prompt
 from .webgpu_executor import execute_kernel
+from .knowledge_base import add_successful_kernel, get_relevant_success_examples
+from datetime import datetime
+
+
+def analyze_previous_attempts(attempts: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Analyze patterns in previous failed attempts."""
+    if not attempts:
+        return {}
+
+    analysis = {
+        "total_attempts": len(attempts),
+        "common_failures": {},
+        "error_patterns": [],
+        "suggestions": []
+    }
+
+    # Count failure types
+    failure_types = {}
+    all_failure_summaries = []
+
+    for attempt in attempts:
+        validation = attempt.get("validation", {})
+        failure_summary = validation.get("failure_summary")
+
+        if failure_summary:
+            all_failure_summaries.append(failure_summary)
+
+            # Count error patterns
+            for error_type, count in failure_summary.get("error_patterns", {}).items():
+                failure_types[error_type] = failure_types.get(error_type, 0) + count
+
+    analysis["common_failures"] = failure_types
+
+    # Generate suggestions based on patterns
+    if "boundary" in failure_types:
+        analysis["suggestions"].append("Focus on boundary condition handling and padding logic")
+    if "overflow" in failure_types:
+        analysis["suggestions"].append("Check array indexing bounds - likely out-of-bounds access")
+    if "indexing" in failure_types:
+        analysis["suggestions"].append("Review tensor indexing formulas, especially for multi-dimensional arrays")
+    if "zero_handling" in failure_types:
+        analysis["suggestions"].append("Ensure kernel correctly handles zero/empty inputs")
+
+    # Find near-misses (high success rate)
+    near_misses = []
+    for attempt in attempts:
+        validation = attempt.get("validation", {})
+        if validation.get("num_passed", 0) >= 8:  # 8/10 or better
+            near_misses.append({
+                "passed": validation.get("num_passed", 0),
+                "total": validation.get("num_total", 10),
+                "failure_summary": validation.get("failure_summary")
+            })
+
+    if near_misses:
+        analysis["near_misses"] = near_misses
+        analysis["suggestions"].append("Previous attempts were very close - focus on specific edge cases")
+
+    return analysis
+
+
+def select_relevant_examples(
+    operation: str,
+    success_examples: Optional[List[Dict[str, Any]]] = None
+) -> List[Dict[str, Any]]:
+    """Select most relevant success examples for the current operation."""
+    if not success_examples:
+        return []
+
+    # For now, return up to 2 most relevant examples
+    # In the future, could use more sophisticated matching (operation type, shapes, etc.)
+    relevant = []
+
+    for example in success_examples:
+        example_op = example.get("operation", "")
+
+        # Exact match gets highest priority
+        if example_op == operation:
+            relevant.append(example)
+        # Similar operations (e.g., conv3d variants)
+        elif operation.startswith("conv") and example_op.startswith("conv"):
+            relevant.append(example)
+        # Generic operations that might be helpful
+        elif len(relevant) < 2:
+            relevant.append(example)
+
+    return relevant[:2]  # Limit to 2 examples to avoid prompt bloat
 
 
 def sample_from_llm(
@@ -59,26 +146,44 @@ def attempt_generation(
     param_shapes: Optional[Dict[str, List[int]]] = None,
     hyperparameters: Optional[Dict[str, Any]] = None,
     torch_fn: Optional[Callable] = None,
-    llm_config: Optional[Dict[str, Any]] = None
+    llm_config: Optional[Dict[str, Any]] = None,
+    previous_attempts: Optional[List[Dict[str, Any]]] = None,
+    success_examples: Optional[List[Dict[str, Any]]] = None
 ) -> Dict[str, Any]:
     """Attempt to generate and validate a kernel."""
 
     if llm_config is None:
         llm_config = default_config()["llm"]
 
-    # Get example kernel if available
-    example_kernels = get_example_kernels()
-    example_kernel = example_kernels.get(operation, example_kernels.get("add", None))
+    # Analyze previous attempts and select examples
+    attempt_analysis = analyze_previous_attempts(previous_attempts) if previous_attempts else {}
+    relevant_examples = select_relevant_examples(operation, success_examples)
 
-    # Build prompts
+    # Build prompts with feedback
     system_prompt = build_system_prompt()
-    user_prompt = build_user_prompt(
-        torch_source,
-        input_shapes,
-        output_shapes,
-        param_shapes,
-        example_kernel
-    )
+
+    if previous_attempts or success_examples:
+        # Use feedback-aware prompt for subsequent attempts
+        user_prompt = build_feedback_aware_prompt(
+            torch_source,
+            input_shapes,
+            output_shapes,
+            param_shapes,
+            hyperparameters,
+            attempt_analysis,
+            relevant_examples
+        )
+    else:
+        # Use standard prompt for first attempt
+        example_kernels = get_example_kernels()
+        example_kernel = example_kernels.get(operation, example_kernels.get("add", None))
+        user_prompt = build_user_prompt(
+            torch_source,
+            input_shapes,
+            output_shapes,
+            param_shapes,
+            example_kernel
+        )
 
     # Prepare messages for LLM
     messages = [
@@ -123,7 +228,8 @@ def attempt_generation(
             "input_shapes": input_shapes,
             "output_shapes": output_shapes,
             "parameter_shapes": param_shapes or {},
-            "hyperparameters": hyperparameters or {}
+            "hyperparameters": hyperparameters or {},
+            "timestamp": datetime.now().isoformat()
         }
     }
 
@@ -197,9 +303,18 @@ def generate_kernel(
             print(f"Found existing kernel: {existing}")
             return existing
 
-    # Attempt generation up to max_samples times
+    # Attempt generation up to max_samples times with learning
     max_samples = config.get("max_samples", 5)
     last_error = None
+    previous_attempts = []
+
+    # Load relevant success examples from knowledge base
+    success_examples = get_relevant_success_examples(
+        operation=operation,
+        input_shapes=input_shapes,
+        cache_dir=config["cache_dir"],
+        max_examples=2
+    )
 
     for attempt in range(max_samples):
         print(f"Generation attempt {attempt + 1}/{max_samples}")
@@ -213,20 +328,55 @@ def generate_kernel(
                 param_shapes,
                 hyperparameters,
                 torch_fn,
-                config.get("llm", {})
+                config.get("llm", {}),
+                previous_attempts=previous_attempts if attempt > 0 else None,
+                success_examples=success_examples
             )
 
             # Save kernel
             kernel_path = save_kernel(kernel_data, config["cache_dir"])
             print(f"Kernel saved: {kernel_path}")
 
-            # Return path if validation passed
-            if kernel_data["validation"]["all_passed"]:
-                print("✓ Kernel validated successfully!")
+            # Check validation results
+            validation_passed = kernel_data["validation"]["all_passed"]
+            has_validation = kernel_data["validation"]["num_total"] > 0
+
+            if validation_passed or not has_validation:
+                if has_validation:
+                    print("✓ Kernel validated successfully!")
+                else:
+                    print("✓ Kernel generated successfully (validation skipped)")
+
+                # Add successful kernel to knowledge base (only if validated)
+                if has_validation and validation_passed:
+                    try:
+                        add_successful_kernel(kernel_data, config["cache_dir"])
+                        print("✓ Added to knowledge base for future learning")
+                    except Exception as e:
+                        print(f"Warning: Failed to add kernel to knowledge base: {e}")
+
                 return kernel_path
             else:
                 print(f"✗ Validation failed: {kernel_data['validation']['num_passed']}/{kernel_data['validation']['num_total']} tests passed")
                 last_error = "Validation failed"
+
+                # Store failed attempt for learning
+                previous_attempts.append({
+                    "attempt_number": attempt + 1,
+                    "operation": operation,
+                    "validation": kernel_data["validation"],
+                    "llm_response": kernel_data["llm_response"],
+                    "kernel_source": kernel_data["llm_response"]["extracted_kernel"]
+                })
+
+                # Show feedback summary if available
+                failure_summary = kernel_data["validation"].get("failure_summary")
+                if failure_summary:
+                    print(f"  Common issues: {', '.join(failure_summary.get('common_issues', []))}")
+                    for feedback in failure_summary.get("specific_feedback", [])[:2]:  # Show top 2
+                        print(f"  • {feedback}")
+                    if failure_summary.get("performance_note"):
+                        print(f"  Note: {failure_summary['performance_note']}")
 
         except Exception as e:
             print(f"Generation attempt failed: {e}")

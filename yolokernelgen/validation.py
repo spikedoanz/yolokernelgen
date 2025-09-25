@@ -135,30 +135,119 @@ def run_torch_reference(
         return tuple(t.detach().cpu().numpy() for t in result)
 
 
+def analyze_failure_pattern(
+    reference: np.ndarray,
+    generated: np.ndarray,
+    test_type: str
+) -> Dict[str, Any]:
+    """Analyze failure patterns to provide specific feedback."""
+    analysis = {"patterns": []}
+
+    # Check for overflow/underflow
+    if np.any(np.isinf(generated)) and not np.any(np.isinf(reference)):
+        analysis["patterns"].append("overflow_detected")
+        analysis["overflow_locations"] = int(np.sum(np.isinf(generated)))
+
+    if np.any(np.isnan(generated)) and not np.any(np.isnan(reference)):
+        analysis["patterns"].append("nan_detected")
+        analysis["nan_locations"] = int(np.sum(np.isnan(generated)))
+
+    # Check for boundary/edge issues
+    if len(reference.shape) >= 2:  # Only for 2D+ tensors
+        # Check if errors are concentrated at boundaries
+        center_slice = tuple(slice(1, -1) for _ in range(len(reference.shape)))
+        try:
+            center_diff = np.abs(reference[center_slice] - generated[center_slice])
+            edge_diff = np.abs(reference - generated)
+
+            center_max = float(np.max(center_diff)) if center_diff.size > 0 else 0.0
+            edge_max = float(np.max(edge_diff))
+
+            if edge_max > center_max * 2 and center_max < 1e-5:
+                analysis["patterns"].append("boundary_error")
+                analysis["center_max_diff"] = center_max
+                analysis["edge_max_diff"] = edge_max
+        except (IndexError, ValueError):
+            pass  # Skip boundary analysis for very small tensors
+
+    # Check for systematic scaling issues
+    if not np.any(np.isinf(generated)) and not np.any(np.isnan(generated)):
+        ref_magnitude = float(np.mean(np.abs(reference)))
+        gen_magnitude = float(np.mean(np.abs(generated)))
+
+        if ref_magnitude > 0 and gen_magnitude > 0:
+            scale_ratio = gen_magnitude / ref_magnitude
+            if scale_ratio > 2.0 or scale_ratio < 0.5:
+                analysis["patterns"].append("scaling_error")
+                analysis["scale_ratio"] = scale_ratio
+
+    # Check for indexing errors (completely wrong values)
+    if not np.any(np.isinf(generated)) and not np.any(np.isnan(generated)):
+        correlation = float(np.corrcoef(reference.flat, generated.flat)[0, 1])
+        if np.isnan(correlation) or correlation < 0.1:
+            analysis["patterns"].append("indexing_error")
+            analysis["correlation"] = correlation
+
+    # Test-specific analysis
+    if test_type == "zeros" and not np.allclose(generated, 0, atol=1e-6):
+        analysis["patterns"].append("zero_handling_error")
+        analysis["non_zero_count"] = int(np.sum(np.abs(generated) > 1e-6))
+
+    return analysis
+
+
 def compare_outputs(
     reference: np.ndarray,
     generated: np.ndarray,
-    tolerance: float = 1e-5
+    tolerance: float = 1e-5,
+    test_type: str = "unknown"
 ) -> Dict[str, Any]:
-    """Compare reference and generated outputs."""
+    """Compare reference and generated outputs with detailed failure analysis."""
     if reference.shape != generated.shape:
         return {
             "passed": False,
             "error": f"Shape mismatch: {reference.shape} vs {generated.shape}",
+            "error_type": "shape_mismatch",
             "max_diff": float('inf'),
-            "mean_diff": float('inf')
+            "mean_diff": float('inf'),
+            "failure_analysis": {"patterns": ["shape_mismatch"]}
         }
 
     diff = np.abs(reference - generated)
     max_diff = float(np.max(diff))
     mean_diff = float(np.mean(diff))
 
-    return {
-        "passed": max_diff <= tolerance,
+    passed = max_diff <= tolerance
+    result = {
+        "passed": passed,
         "max_diff": max_diff,
         "mean_diff": mean_diff,
-        "tolerance": tolerance
+        "tolerance": tolerance,
+        "test_type": test_type
     }
+
+    # Add detailed failure analysis if test failed
+    if not passed:
+        result["failure_analysis"] = analyze_failure_pattern(reference, generated, test_type)
+
+        # Determine primary error type
+        patterns = result["failure_analysis"]["patterns"]
+        if "overflow_detected" in patterns:
+            result["error_type"] = "overflow"
+        elif "nan_detected" in patterns:
+            result["error_type"] = "nan"
+        elif "boundary_error" in patterns:
+            result["error_type"] = "boundary"
+        elif "scaling_error" in patterns:
+            result["error_type"] = "scaling"
+        elif "indexing_error" in patterns:
+            result["error_type"] = "indexing"
+        elif "zero_handling_error" in patterns:
+            result["error_type"] = "zero_handling"
+        else:
+            result["error_type"] = "numerical"
+
+    return result
 
 
 def validate_kernel(
@@ -191,8 +280,7 @@ def validate_kernel(
             generated_output = webgpu_executor(kernel_source, all_inputs)
 
             # Compare outputs
-            comparison = compare_outputs(reference_output, generated_output, tolerance)
-            comparison["type"] = test_case["type"]
+            comparison = compare_outputs(reference_output, generated_output, tolerance, test_case["type"])
             comparison["seed"] = test_case["seed"]
 
             validation_results.append(comparison)
@@ -210,11 +298,73 @@ def validate_kernel(
             })
             all_passed = False
 
+    # Generate failure summary for feedback
+    failure_summary = generate_failure_summary(validation_results) if not all_passed else None
+
     return {
         "tolerance": tolerance,
         "dtype": dtype,
         "test_cases": validation_results,
         "all_passed": all_passed,
         "num_passed": sum(1 for r in validation_results if r["passed"]),
-        "num_total": len(validation_results)
+        "num_total": len(validation_results),
+        "failure_summary": failure_summary
     }
+
+
+def generate_failure_summary(validation_results: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Generate a summary of validation failures for feedback to LLM."""
+    failed_tests = [r for r in validation_results if not r["passed"]]
+
+    if not failed_tests:
+        return None
+
+    summary = {
+        "total_failures": len(failed_tests),
+        "failed_test_types": [r["test_type"] for r in failed_tests],
+        "error_patterns": {},
+        "common_issues": [],
+        "specific_feedback": []
+    }
+
+    # Analyze error patterns
+    error_types = {}
+    for result in failed_tests:
+        error_type = result.get("error_type", "unknown")
+        error_types[error_type] = error_types.get(error_type, 0) + 1
+
+        # Add specific feedback based on error type
+        if error_type == "overflow":
+            summary["specific_feedback"].append(
+                f"Test '{result['test_type']}' failed due to overflow - check array indexing bounds"
+            )
+        elif error_type == "boundary":
+            summary["specific_feedback"].append(
+                f"Test '{result['test_type']}' failed at boundaries - verify padding/edge case handling"
+            )
+        elif error_type == "zero_handling":
+            summary["specific_feedback"].append(
+                f"Test '{result['test_type']}' failed - kernel doesn't handle zero inputs correctly"
+            )
+        elif error_type == "indexing":
+            summary["specific_feedback"].append(
+                f"Test '{result['test_type']}' failed - likely tensor indexing error (correlation < 0.1)"
+            )
+
+    summary["error_patterns"] = error_types
+
+    # Generate common issues
+    if "boundary" in error_types:
+        summary["common_issues"].append("Boundary/padding handling errors")
+    if "overflow" in error_types:
+        summary["common_issues"].append("Array indexing overflow")
+    if "indexing" in error_types:
+        summary["common_issues"].append("Tensor indexing logic errors")
+    if "zero_handling" in error_types:
+        summary["common_issues"].append("Special case handling (zeros, etc.)")
+
+    # Add performance note if mostly passed
+    if len(failed_tests) <= 2:
+        summary["performance_note"] = "Nearly passing - focus on edge cases"
+
+    return summary
