@@ -2,7 +2,15 @@
 
 import numpy as np
 from typing import List, Tuple, Optional
-from pydawn import utils, webgpu
+
+# Try to import pydawn, but make it optional
+try:
+    from pydawn import utils, webgpu
+    PYDAWN_AVAILABLE = True
+except ImportError:
+    PYDAWN_AVAILABLE = False
+    utils = None
+    webgpu = None
 
 
 def tensor_to_bytes(tensor: np.ndarray) -> bytes:
