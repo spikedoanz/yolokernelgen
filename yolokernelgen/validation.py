@@ -210,6 +210,7 @@ def compare_outputs(
             "error_type": "shape_mismatch",
             "max_diff": float('inf'),
             "mean_diff": float('inf'),
+            "test_type": test_type,
             "failure_analysis": {"patterns": ["shape_mismatch"]}
         }
 
@@ -294,7 +295,9 @@ def validate_kernel(
                 "passed": False,
                 "error": str(e),
                 "max_diff": float('inf'),
-                "mean_diff": float('inf')
+                "mean_diff": float('inf'),
+                "test_type": test_case["type"],
+                "error_type": "exception"
             })
             all_passed = False
 

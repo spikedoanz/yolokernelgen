@@ -8,7 +8,16 @@ from typing import Dict, List, Any, Optional, Callable
 from .config import default_config
 from .storage import save_kernel, find_kernel
 from .validation import create_test_suite, validate_kernel
-from .prompts import build_system_prompt, build_user_prompt, extract_kernel_from_response, get_example_kernels, build_feedback_aware_prompt
+from .prompts import (
+    build_system_prompt, 
+    build_user_prompt, 
+    extract_kernel_from_response, 
+    get_example_kernels, 
+    build_feedback_aware_prompt,
+    determine_complexity_level,
+    get_sampling_config_for_complexity,
+    get_progressive_example_kernels
+)
 from .webgpu_executor import execute_kernel
 from .knowledge_base import add_successful_kernel, get_relevant_success_examples
 from datetime import datetime
@@ -155,12 +164,22 @@ def attempt_generation(
     if llm_config is None:
         llm_config = default_config()["llm"]
 
+    # Determine complexity level and get optimized config
+    complexity_level = determine_complexity_level(operation, input_shapes, torch_source)
+    complexity_config = get_sampling_config_for_complexity(complexity_level)
+    
+    # Override LLM config with complexity-specific settings
+    if llm_config:
+        llm_config.update(complexity_config)
+    else:
+        llm_config = complexity_config
+
     # Analyze previous attempts and select examples
     attempt_analysis = analyze_previous_attempts(previous_attempts) if previous_attempts else {}
     relevant_examples = select_relevant_examples(operation, success_examples)
 
-    # Build prompts with feedback
-    system_prompt = build_system_prompt()
+    # Build prompts with complexity-aware feedback
+    system_prompt = build_system_prompt(complexity_level)
 
     if previous_attempts or success_examples:
         # Use feedback-aware prompt for subsequent attempts
@@ -174,9 +193,29 @@ def attempt_generation(
             relevant_examples
         )
     else:
-        # Use standard prompt for first attempt
-        example_kernels = get_example_kernels()
-        example_kernel = example_kernels.get(operation, example_kernels.get("add", None))
+        # Use standard prompt for first attempt with complexity-aware examples
+        progressive_kernels = get_progressive_example_kernels()
+        
+        # Select appropriate example based on complexity level
+        if complexity_level in ["conv3d"]:
+            level_examples = progressive_kernels.get("level_6_conv3d", {})
+        elif complexity_level in ["conv2d"]:
+            level_examples = progressive_kernels.get("level_5_conv2d", {})
+        elif complexity_level in ["aggregation"]:
+            level_examples = progressive_kernels.get("level_4_aggregation", {})
+        elif complexity_level in ["matrix"]:
+            level_examples = progressive_kernels.get("level_3_matrix", {})
+        else:
+            level_examples = progressive_kernels.get("level_1_elementwise", {})
+        
+        # Fallback to legacy examples if needed
+        if not level_examples:
+            example_kernels = get_example_kernels()
+            example_kernel = example_kernels.get(operation, example_kernels.get("add", None))
+        else:
+            # Try to find operation-specific example, otherwise use first available
+            example_kernel = level_examples.get(operation, list(level_examples.values())[0] if level_examples else None)
+        
         user_prompt = build_user_prompt(
             torch_source,
             input_shapes,
