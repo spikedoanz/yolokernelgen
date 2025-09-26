@@ -9,7 +9,7 @@ from typing import Dict, List, Any, Optional, Callable
 from .types import KernelData, KernelMetadata, Config
 from .exceptions import KernelGenerationError, ValidationError, LLMError
 from .llm import LLMClient, build_prompts
-from .validator import create_test_suite, validate_kernel
+from .validator import create_test_suite, validate_kernel_sync
 from .storage import save_kernel, find_kernel
 from .webgpu_executor import execute_kernel
 from .knowledge_base import add_successful_kernel, get_relevant_success_examples
@@ -19,7 +19,7 @@ from .logging_config import get_runtime_logger
 logger = get_runtime_logger()
 
 
-async def attempt_generation(
+def attempt_generation_sync(
     torch_source: str,
     operation: str,
     input_shapes: List[List[int]],
@@ -32,18 +32,17 @@ async def attempt_generation(
     success_examples: Optional[List[Dict[str, Any]]] = None,
     semaphore: Optional[asyncio.Semaphore] = None
 ) -> KernelData:
-    """Attempt to generate and validate a kernel asynchronously."""
+    """Attempt to generate and validate a kernel."""
 
     if config is None:
         config = Config()
 
-    async with semaphore or asyncio.Semaphore(1):
-        try:
-            # Initialize LLM client
-            llm_client = LLMClient()
+    try:
+        # Initialize LLM client
+        llm_client = LLMClient()
 
-            # Build prompts with feedback awareness
-            llm_request = build_prompts(
+        # Build prompts with feedback awareness
+        llm_request = build_prompts(
                 torch_source,
                 input_shapes,
                 output_shapes,
@@ -52,92 +51,91 @@ async def attempt_generation(
                 operation,
                 previous_attempts,
                 success_examples
-            )
+        )
 
-            # Override with config values
-            llm_request.model = config.llm.get("model", "gpt-4o")
-            llm_request.temperature = config.llm.get("temperature", 0.7)
-            llm_request.max_tokens = config.llm.get("max_tokens", 4000)
+        # Override with config values
+        llm_request.model = config.llm.get("model", "gpt-4o")
+        llm_request.temperature = config.llm.get("temperature", 0.7)
+        llm_request.max_tokens = config.llm.get("max_tokens", 4000)
 
-            # Sample from LLM
-            llm_response = await asyncio.to_thread(
-                llm_client.sample_from_llm,
+        # Sample from LLM (synchronous)
+        llm_response = llm_client.sample_from_llm(
                 llm_request.messages,
                 llm_request.model,
                 llm_request.temperature,
                 llm_request.max_tokens
-            )
+        )
 
-            # Create metadata
-            metadata = KernelMetadata(
+        # Create metadata
+        metadata = KernelMetadata(
                 input_shapes=input_shapes,
                 output_shapes=output_shapes,
                 parameter_shapes=param_shapes or {},
                 hyperparameters=hyperparameters or {},
                 timestamp=datetime.now().isoformat()
+        )
+
+        # Validate if torch_fn provided
+        if torch_fn:
+            test_suite = create_test_suite(
+                input_shapes,
+                param_shapes,
+                num_random=config.validation.get("num_random_tests", 5),
+                num_edge=config.validation.get("num_edge_tests", 5),
+                seeds=config.validation.get("test_seeds", [42, 123, 456, 789, 1011])
             )
 
-            # Validate if torch_fn provided
-            if torch_fn:
-                test_suite = create_test_suite(
-                    input_shapes,
-                    param_shapes,
-                    num_random=config.validation.get("num_random_tests", 5),
-                    num_edge=config.validation.get("num_edge_tests", 5),
-                    seeds=config.validation.get("test_seeds", [42, 123, 456, 789, 1011])
-                )
+            # Create executor wrapper
+            def webgpu_executor(kernel_src: str, inputs: List) -> Any:
+                return execute_kernel(kernel_src, inputs, output_shapes[0])
 
-                # Create executor wrapper
-                def webgpu_executor(kernel_src: str, inputs: List) -> Any:
-                    return execute_kernel(kernel_src, inputs, output_shapes[0])
-
-                # Run validation (CPU-bound, use thread pool)
-                validation_result = await validate_kernel(
-                    llm_response.extracted_kernel,
-                    torch_fn,
-                    test_suite,
-                    webgpu_executor,
-                    tolerance=config.tolerance.get("float32", 1e-5),
-                    dtype="float32"
-                )
-            else:
-                # No validation possible without torch_fn
-                from .types import ValidationResult, TestCase
-                validation_result = ValidationResult(
-                    tolerance=config.tolerance.get("float32", 1e-5),
-                    dtype="float32",
-                    test_cases=[],
-                    all_passed=False,
-                    num_passed=0,
-                    num_total=0,
-                    note="No validation performed - torch_fn not provided"
-                )
-
-            # Determine status
-            status = "correct" if validation_result.all_passed else "rejected"
-
-            # Create kernel data
-            kernel_data = KernelData(
-                operation=operation,
-                torch_source=torch_source,
-                torch_hash=hashlib.sha256(torch_source.encode()).hexdigest(),
-                llm_request=llm_request,
-                llm_response=llm_response,
-                metadata=metadata,
-                validation=validation_result,
-                status=status
+            # Run validation (synchronous)
+            validation_result = validate_kernel_sync(
+                llm_response.extracted_kernel,
+                torch_fn,
+                test_suite,
+                webgpu_executor,
+                tolerance=config.tolerance.get("float32", 1e-5),
+                dtype="float32"
+            )
+        else:
+            # No validation possible without torch_fn
+            from .types import ValidationResult, TestCase
+            validation_result = ValidationResult(
+                tolerance=config.tolerance.get("float32", 1e-5),
+                dtype="float32",
+                test_cases=[],
+                all_passed=False,
+                num_passed=0,
+                num_total=0,
+                note="No validation performed - torch_fn not provided"
             )
 
-            return kernel_data
+        # Determine status
+        status = "correct" if validation_result.all_passed else "rejected"
 
-        except Exception as e:
-            if isinstance(e, (LLMError, ValidationError)):
-                raise e
-            else:
-                raise KernelGenerationError(f"Kernel generation failed: {e}")
+        # Create kernel data
+        kernel_data = KernelData(
+            operation=operation,
+            torch_source=torch_source,
+            torch_hash=hashlib.sha256(torch_source.encode()).hexdigest(),
+            llm_request=llm_request,
+            llm_response=llm_response,
+            metadata=metadata,
+            validation=validation_result,
+            status=status
+        )
+
+        return kernel_data
+
+    except Exception as e:
+        if isinstance(e, (LLMError, ValidationError)):
+            raise e
+        else:
+            raise KernelGenerationError(f"Kernel generation failed: {e}")
 
 
-async def generate_kernel(
+def generate_kernel(
     torch_source: str,
     operation: str,
     input_shapes: List[List[int]],
@@ -149,7 +147,7 @@ async def generate_kernel(
     force_regenerate: bool = False,
     semaphore: Optional[asyncio.Semaphore] = None
 ) -> Path:
-    """Main kernel generation pipeline with async support."""
+    """Main kernel generation pipeline."""
 
     if config is None:
         config = Config()
@@ -187,7 +185,7 @@ async def generate_kernel(
         logger.info(f"Generation attempt {attempt + 1}/{max_samples}")
 
         try:
-            kernel_data = await attempt_generation(
+            kernel_data = attempt_generation_sync(
                 torch_source,
                 operation,
                 input_shapes,
@@ -255,49 +253,30 @@ async def generate_kernel(
     raise KernelGenerationError(f"Failed to generate valid kernel after {max_samples} attempts. Last error: {last_error}")
 
 
-async def batch_generate_kernels(
+def batch_generate_kernels(
     operations: List[Dict[str, Any]],
     config: Optional[Config] = None,
-    max_concurrent: Optional[int] = None
+    parallel: bool = False
 ) -> List[Path]:
-    """Generate multiple kernels in batch with controlled concurrency."""
-
-    if config is None:
-        config = Config()
-
-    if max_concurrent is None:
-        max_concurrent = config.max_concurrent_llm
-
-    # Create semaphore for controlling concurrency
-    semaphore = asyncio.Semaphore(max_concurrent)
-
-    # Create tasks for all operations
-    tasks = []
-    for op_spec in operations:
-        task = generate_kernel(
-            torch_source=op_spec["torch_source"],
-            operation=op_spec["operation"],
-            input_shapes=op_spec["input_shapes"],
-            output_shapes=op_spec["output_shapes"],
-            param_shapes=op_spec.get("param_shapes"),
-            hyperparameters=op_spec.get("hyperparameters"),
-            torch_fn=op_spec.get("torch_fn"),
-            config=config,
-            semaphore=semaphore
-        )
-        tasks.append(task)
-
-    # Execute tasks with controlled concurrency
+    """Generate multiple kernels in batch."""
     results = []
-    for i, task in enumerate(asyncio.as_completed(tasks)):
+
+    for i, op_spec in enumerate(operations):
         try:
-            path = await task
-            results.append((i, path))
+            path = generate_kernel(
+                torch_source=op_spec["torch_source"],
+                operation=op_spec["operation"],
+                input_shapes=op_spec["input_shapes"],
+                output_shapes=op_spec["output_shapes"],
+                param_shapes=op_spec.get("param_shapes"),
+                hyperparameters=op_spec.get("hyperparameters"),
+                torch_fn=op_spec.get("torch_fn"),
+                config=config
+            )
+            results.append(path)
             logger.info(f"Completed kernel {i + 1}/{len(operations)}")
         except Exception as e:
             logger.error(f"Failed to generate kernel {i + 1}: {e}")
-            results.append((i, None))
+            results.append(None)
 
-    # Sort results by original order
-    results.sort(key=lambda x: x[0])
-    return [result[1] for result in results]
+    return results

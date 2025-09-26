@@ -70,14 +70,14 @@ class LLMResponse(SerialDataclass):
 @dataclass
 class TestCase(SerialDataclass):
     """Individual test case data structure."""
-    inputs: List[List[float]]
-    expected_output: List[float]
+    inputs: Any  # Can be nested lists of various depths
+    expected_output: Any  # Can be nested lists
     test_type: str
     seed: int
     tolerance: float
     passed: bool
     error_message: Optional[str] = None
-    actual_output: Optional[List[float]] = None
+    actual_output: Optional[Any] = None
 
 
 @dataclass
@@ -243,3 +243,36 @@ class Config(SerialDataclass):
         cache_parent = Path(self.cache_dir).parent
         if not cache_parent.exists():
             raise ValueError(f"Parent directory of cache_dir must exist: {cache_parent}")
+
+    def __getitem__(self, key: str) -> Any:
+        """Support dictionary-style access for backward compatibility."""
+        if hasattr(self, key):
+            return getattr(self, key)
+        else:
+            raise KeyError(f"'{key}' not found in Config")
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        """Support dictionary-style assignment for backward compatibility."""
+        if hasattr(self, key):
+            setattr(self, key, value)
+        else:
+            raise KeyError(f"'{key}' not found in Config")
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """Support dict.get() style access for backward compatibility."""
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+    def keys(self):
+        """Support dict.keys() for backward compatibility."""
+        return [field.name for field in self.__dataclass_fields__]
+
+    def items(self):
+        """Support dict.items() for backward compatibility."""
+        return [(key, getattr(self, key)) for key in self.keys()]
+
+    def values(self):
+        """Support dict.values() for backward compatibility."""
+        return [getattr(self, key) for key in self.keys()]

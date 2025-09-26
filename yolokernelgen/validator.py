@@ -264,7 +264,7 @@ def compare_outputs(
     return result
 
 
-async def validate_kernel(
+def validate_kernel_sync(
     kernel_source: str,
     torch_fn: Callable,
     test_suite: List[TestCase],
@@ -272,7 +272,7 @@ async def validate_kernel(
     tolerance: float = 1e-5,
     dtype: str = "float32"
 ) -> ValidationResult:
-    """Validate WebGPU kernel against PyTorch reference."""
+    """Validate WebGPU kernel against PyTorch reference (synchronous)."""
     logger.debug(f"Validating kernel with {len(test_suite)} test cases, tolerance={tolerance}")
     try:
         validated_test_cases = []
@@ -345,6 +345,19 @@ async def validate_kernel(
     except Exception as e:
         logger.error(f"Validation failed: {e}")
         raise ValidationError(f"Validation failed: {e}")
+
+
+# Backward compatibility alias
+def validate_kernel(
+    kernel_source: str,
+    torch_fn: Callable,
+    test_suite: List[TestCase],
+    webgpu_executor: Callable,
+    tolerance: float = 1e-5,
+    dtype: str = "float32"
+) -> ValidationResult:
+    """Backward compatible validate_kernel function."""
+    return validate_kernel_sync(kernel_source, torch_fn, test_suite, webgpu_executor, tolerance, dtype)
 
 
 def generate_failure_summary(test_cases: List[TestCase]) -> Dict[str, Any]:
