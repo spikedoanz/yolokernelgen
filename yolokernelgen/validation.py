@@ -114,7 +114,7 @@ def run_torch_reference(
     torch_fn: Callable,
     inputs: List[np.ndarray],
     params: Optional[Dict[str, np.ndarray]] = None
-) -> np.ndarray:
+) -> Union[np.ndarray, tuple]:
     """Run PyTorch reference implementation."""
     # Convert numpy arrays to torch tensors
     torch_inputs = [torch.from_numpy(inp.copy()) for inp in inputs]
@@ -139,7 +139,7 @@ def analyze_failure_pattern(
     test_type: str
 ) -> Dict[str, Any]:
     """Analyze failure patterns to provide specific feedback."""
-    analysis = {"patterns": []}
+    analysis: Dict[str, Any] = {"patterns": []}
 
     # Check for overflow/underflow
     if np.any(np.isinf(generated)) and not np.any(np.isinf(reference)):
@@ -310,7 +310,7 @@ def validate_kernel(
     }
 
 
-def generate_failure_summary(validation_results: List[Dict[str, Any]]) -> Dict[str, Any]:
+def generate_failure_summary(validation_results: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     """Generate a summary of validation failures for feedback to LLM."""
     failed_tests = [r for r in validation_results if not r["passed"]]
 
