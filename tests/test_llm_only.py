@@ -14,7 +14,7 @@ def mock_execute_kernel(kernel_source, input_tensors, output_shape=None, workgro
     return np.zeros_like(input_tensors[0])
 
 # Monkey-patch the execute_kernel function
-yolokernelgen.webgpu_executor.execute_kernel = mock_execute_kernel
+yolokernelgen.webgpu_executor.execute_kernel = mock_execute_kernel #type:ignore
 
 from yolokernelgen import generate_kernel, load_kernel
 from yolokernelgen.config import default_config

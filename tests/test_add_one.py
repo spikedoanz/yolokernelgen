@@ -57,7 +57,7 @@ def test_add_one():
 
         # Test with real data
         print("\n=== Testing with Real Data ===")
-        test_input = np.random.randn(*input_shapes[0]).astype(np.float32)
+        test_input = np.random.randn(*input_shapes[0]).astype(np.float32)  # type: ignore
         print(f"Sample input values: {test_input.flat[:5]}")
 
         # Execute kernel

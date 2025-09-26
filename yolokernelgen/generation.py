@@ -3,7 +3,7 @@
 import os
 import hashlib
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Callable
+from typing import Dict, List, Any, Optional, Callable, Union, cast
 
 from .config import default_config
 from .storage import save_kernel, find_kernel
@@ -100,7 +100,7 @@ def select_relevant_examples(
 
 
 def sample_from_llm(
-    messages: List[Dict[str, str]],
+    messages: List[Dict[str, Any]],
     model: str = "gpt-4o",
     temperature: float = 0.7,
     max_tokens: int = 4000
@@ -121,7 +121,7 @@ def sample_from_llm(
     try:
         response = client.chat.completions.create(
             model=model,
-            messages=messages,
+            messages=cast(Any, messages),  # Cast to avoid OpenAI typing issues
             temperature=temperature,
             max_tokens=max_tokens
         )
@@ -129,9 +129,9 @@ def sample_from_llm(
         return {
             "raw_completion": response.choices[0].message.content,
             "usage": {
-                "prompt_tokens": response.usage.prompt_tokens,
-                "completion_tokens": response.usage.completion_tokens,
-                "total_tokens": response.usage.total_tokens
+                "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
+                "completion_tokens": response.usage.completion_tokens if response.usage else 0,
+                "total_tokens": response.usage.total_tokens if response.usage else 0
             }
         }
     except Exception as e:
@@ -154,6 +154,8 @@ def attempt_generation(
 
     if llm_config is None:
         llm_config = default_config()["llm"]
+
+    assert llm_config is not None  # Help type checker
 
     # Analyze previous attempts and select examples
     attempt_analysis = analyze_previous_attempts(previous_attempts) if previous_attempts else {}

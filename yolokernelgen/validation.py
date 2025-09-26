@@ -2,7 +2,7 @@
 
 import numpy as np
 import torch
-from typing import List, Dict, Any, Callable, Optional
+from typing import List, Dict, Any, Callable, Optional, Union
 
 
 def generate_test_inputs(
@@ -114,7 +114,7 @@ def run_torch_reference(
     torch_fn: Callable,
     inputs: List[np.ndarray],
     params: Optional[Dict[str, np.ndarray]] = None
-) -> np.ndarray:
+) -> Union[np.ndarray, tuple]:
     """Run PyTorch reference implementation."""
     # Convert numpy arrays to torch tensors
     torch_inputs = [torch.from_numpy(inp.copy()) for inp in inputs]
@@ -139,7 +139,7 @@ def analyze_failure_pattern(
     test_type: str
 ) -> Dict[str, Any]:
     """Analyze failure patterns to provide specific feedback."""
-    analysis = {"patterns": []}
+    analysis: Dict[str, Any] = {"patterns": []}
 
     # Check for overflow/underflow
     if np.any(np.isinf(generated)) and not np.any(np.isinf(reference)):
@@ -277,8 +277,9 @@ def validate_kernel(
 
             generated_output = webgpu_executor(kernel_source, all_inputs)
 
-            # Compare outputs
-            comparison = compare_outputs(reference_output, generated_output, tolerance, test_case["type"])
+            # Compare outputs (handle tuple outputs by using first element)
+            ref_out = reference_output[0] if isinstance(reference_output, tuple) else reference_output
+            comparison = compare_outputs(ref_out, generated_output, tolerance, test_case["type"])
             comparison["seed"] = test_case["seed"]
 
             validation_results.append(comparison)
@@ -310,7 +311,7 @@ def validate_kernel(
     }
 
 
-def generate_failure_summary(validation_results: List[Dict[str, Any]]) -> Dict[str, Any]:
+def generate_failure_summary(validation_results: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     """Generate a summary of validation failures for feedback to LLM."""
     failed_tests = [r for r in validation_results if not r["passed"]]
 

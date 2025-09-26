@@ -107,7 +107,7 @@ def example_simple_identity():
 
     # Manual kernel that we know works
     shape = [256, 128, 32]  # Smaller test shape
-    total_elements = np.prod(shape)
+    total_elements = int(np.prod(shape))
 
     kernel_source = f"""
         @group(0) @binding(0)
@@ -131,7 +131,7 @@ def example_simple_identity():
     """
 
     # Test the kernel
-    test_input = np.random.randn(*shape).astype(np.float32)
+    test_input = np.random.randn(*shape).astype(np.float32)  # type: ignore
     input_bytes = test_input.tobytes()
 
     result_bytes = execute_simple_kernel(kernel_source, input_bytes, total_elements)

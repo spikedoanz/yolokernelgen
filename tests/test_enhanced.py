@@ -10,17 +10,17 @@ def mock_execute_kernel(kernel_source, input_tensors, output_shape=None, workgro
     if output_shape:
         return np.zeros(output_shape, dtype=np.float32)
     return np.zeros_like(input_tensors[0])
-yolokernelgen.webgpu_executor.execute_kernel = mock_execute_kernel
+yolokernelgen.webgpu_executor.execute_kernel = mock_execute_kernel  # type: ignore
 
 from yolokernelgen import generate_kernel, load_kernel
 from yolokernelgen.config import default_config
-from enhanced_prompts import build_enhanced_system_prompt, build_enhanced_user_prompt, get_enhanced_example_kernels
+from docs.enhanced_prompts import build_enhanced_system_prompt, build_enhanced_user_prompt, get_enhanced_example_kernels
 
 # Monkey patch the prompts module to use enhanced prompts
 import yolokernelgen.prompts
-yolokernelgen.prompts.build_system_prompt = build_enhanced_system_prompt
-yolokernelgen.prompts.build_user_prompt = build_enhanced_user_prompt
-yolokernelgen.prompts.get_example_kernels = get_enhanced_example_kernels
+yolokernelgen.prompts.build_system_prompt = build_enhanced_system_prompt  # type: ignore
+yolokernelgen.prompts.build_user_prompt = build_enhanced_user_prompt  # type: ignore
+yolokernelgen.prompts.get_example_kernels = get_enhanced_example_kernels  # type: ignore
 
 
 def test_enhanced_conv2d():
