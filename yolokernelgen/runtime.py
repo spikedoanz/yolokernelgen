@@ -13,6 +13,7 @@ from .validator import create_test_suite, validate_kernel
 from .storage import save_kernel, find_kernel
 from .webgpu_executor import execute_kernel
 from .knowledge_base import add_successful_kernel, get_relevant_success_examples
+from .config import default_config_dict
 from .logging_config import get_runtime_logger
 
 logger = get_runtime_logger()
