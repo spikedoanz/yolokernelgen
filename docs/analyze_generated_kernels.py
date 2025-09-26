@@ -166,7 +166,7 @@ def show_best_kernel():
         except:
             continue
 
-    if best_kernel:
+    if best_kernel and best_info:
         print("\n=== Best Generated Kernel ===")
         print(f"Operation: {best_info['operation']}")
         print(f"Quality Score: {best_score:.2f}")
