@@ -50,7 +50,7 @@ def test_add_one():
 
         # Load the generated kernel
         kernel_data = load_kernel(kernel_path)
-        kernel_source = kernel_data["llm_response"]["extracted_kernel"]
+        kernel_source = kernel_data.llm_response.extracted_kernel
 
         print("\n=== Generated WGSL Kernel ===")
         print(kernel_source[:500] + "..." if len(kernel_source) > 500 else kernel_source)
@@ -79,19 +79,19 @@ def test_add_one():
         print(f"Mean difference: {mean_diff:.2e}")
 
         # Show validation details
-        if "validation" in kernel_data:
-            val = kernel_data["validation"]
+        if kernel_data.validation:
+            val = kernel_data.validation
             print("\nValidation suite results:")
-            print(f"  Passed: {val['num_passed']}/{val['num_total']} tests")
-            if val['test_cases']:
-                for i, test in enumerate(val['test_cases'][:3]):  # Show first 3
-                    print(f"  Test {i+1} ({test['type']}): "
-                          f"{'✓' if test['passed'] else '✗'} "
-                          f"max_diff={test.get('max_diff', 'N/A'):.2e}")
+            print(f"  Passed: {val.num_passed}/{val.num_total} tests")
+            if val.test_cases:
+                for i, test in enumerate(val.test_cases[:3]):  # Show first 3
+                    print(f"  Test {i+1} ({test.test_type}): "
+                          f"{'✓' if test.passed else '✗'} "
+                          f"error: {test.error_message or 'None'}")
 
         # Show token usage
-        if "llm_response" in kernel_data and "usage" in kernel_data["llm_response"]:
-            usage = kernel_data["llm_response"]["usage"]
+        if kernel_data.llm_response and kernel_data.llm_response.usage:
+            usage = kernel_data.llm_response.usage
             print("\nToken usage:")
             print(f"  Prompt tokens: {usage.get('prompt_tokens', 'N/A')}")
             print(f"  Completion tokens: {usage.get('completion_tokens', 'N/A')}")

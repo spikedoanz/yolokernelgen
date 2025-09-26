@@ -58,7 +58,7 @@ def test_llm_generation():
 
         # Load and display the generated kernel
         kernel_data = load_kernel(kernel_path)
-        kernel_source = kernel_data["llm_response"]["extracted_kernel"]
+        kernel_source = kernel_data.llm_response.extracted_kernel
 
         print("\n=== Generated WGSL Kernel ===")
         print(kernel_source)
@@ -78,8 +78,8 @@ def test_llm_generation():
         print(f"Has main function: {has_main}")
 
         # Show token usage
-        if "usage" in kernel_data["llm_response"]:
-            usage = kernel_data["llm_response"]["usage"]
+        if kernel_data.llm_response.usage:
+            usage = kernel_data.llm_response.usage
             print("\n=== Token Usage ===")
             print(f"Prompt tokens: {usage.get('prompt_tokens', 'N/A')}")
             print(f"Completion tokens: {usage.get('completion_tokens', 'N/A')}")
