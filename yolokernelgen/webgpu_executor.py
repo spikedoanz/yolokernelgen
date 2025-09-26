@@ -5,12 +5,12 @@ from typing import List, Tuple, Optional
 
 # Try to import pydawn, but make it optional
 try:
-    from pydawn import utils, webgpu
+    from pydawn import utils, webgpu  # type: ignore
     PYDAWN_AVAILABLE = True
 except ImportError:
     PYDAWN_AVAILABLE = False
-    utils = None
-    webgpu = None
+    utils = None  # type: ignore
+    webgpu = None  # type: ignore
 
 
 def tensor_to_bytes(tensor: np.ndarray) -> bytes:
@@ -53,10 +53,10 @@ def execute_kernel(
     """Execute WebGPU kernel with multiple input tensors."""
 
     # Create adapter and device
-    adapter = utils.request_adapter_sync(
-        power_preference=webgpu.WGPUPowerPreference_HighPerformance
+    adapter = utils.request_adapter_sync(  # type: ignore
+        power_preference=webgpu.WGPUPowerPreference_HighPerformance  # type: ignore
     )
-    dev = utils.request_device_sync(adapter, [])
+    dev = utils.request_device_sync(adapter, [])  # type: ignore
 
     # Prepare input buffers
     input_buffers_bytes = prepare_buffers(input_tensors)
@@ -89,41 +89,41 @@ def execute_kernel(
     aligned_output_size = ((output_size + 15) // 16) * 16
 
     # Create shader module
-    shader_module = utils.create_shader_module(dev, kernel_source)
+    shader_module = utils.create_shader_module(dev, kernel_source)  # type: ignore
 
     # Create GPU buffers
     gpu_input_buffers = []
     for size in aligned_sizes:
-        gpu_input_buffers.append(utils.create_buffer(
+        gpu_input_buffers.append(utils.create_buffer(  # type: ignore
             dev,
             size,
-            webgpu.WGPUBufferUsage_Storage | webgpu.WGPUBufferUsage_CopyDst
+            webgpu.WGPUBufferUsage_Storage | webgpu.WGPUBufferUsage_CopyDst  # type: ignore
         ))
 
-    gpu_output_buffer = utils.create_buffer(
+    gpu_output_buffer = utils.create_buffer(  # type: ignore
         dev,
         aligned_output_size,
-        webgpu.WGPUBufferUsage_Storage | webgpu.WGPUBufferUsage_CopySrc
+        webgpu.WGPUBufferUsage_Storage | webgpu.WGPUBufferUsage_CopySrc  # type: ignore
     )
 
     # Write data to GPU buffers
     for gpu_buf, aligned_buf in zip(gpu_input_buffers, aligned_buffers):
-        utils.write_buffer(dev, gpu_buf, 0, bytearray(aligned_buf))
+        utils.write_buffer(dev, gpu_buf, 0, bytearray(aligned_buf))  # type: ignore
 
     # Setup bind group layout entries
     binding_layouts = []
     for i in range(len(input_tensors)):
         binding_layouts.append({
             "binding": i,
-            "visibility": webgpu.WGPUShaderStage_Compute,
-            "buffer": {"type": webgpu.WGPUBufferBindingType_ReadOnlyStorage},
+            "visibility": webgpu.WGPUShaderStage_Compute,  # type: ignore  # type: ignore
+            "buffer": {"type": webgpu.WGPUBufferBindingType_ReadOnlyStorage},  # type: ignore
         })
 
     # Add output buffer binding
     binding_layouts.append({
         "binding": len(input_tensors),
-        "visibility": webgpu.WGPUShaderStage_Compute,
-        "buffer": {"type": webgpu.WGPUBufferBindingType_Storage},
+        "visibility": webgpu.WGPUShaderStage_Compute,  # type: ignore
+        "buffer": {"type": webgpu.WGPUBufferBindingType_Storage},  # type: ignore
     })
 
     # Setup bindings
@@ -141,48 +141,48 @@ def execute_kernel(
     })
 
     # Create bind group and pipeline
-    bind_group_layout = utils.create_bind_group_layout(device=dev, entries=binding_layouts)
-    pipeline_layout = utils.create_pipeline_layout(device=dev, bind_group_layouts=[bind_group_layout])
-    bind_group = utils.create_bind_group(device=dev, layout=bind_group_layout, entries=bindings)
+    bind_group_layout = utils.create_bind_group_layout(device=dev, entries=binding_layouts)  # type: ignore
+    pipeline_layout = utils.create_pipeline_layout(device=dev, bind_group_layouts=[bind_group_layout])  # type: ignore
+    bind_group = utils.create_bind_group(device=dev, layout=bind_group_layout, entries=bindings)  # type: ignore
 
     # Create compute pipeline
-    compute_pipeline = utils.create_compute_pipeline(
+    compute_pipeline = utils.create_compute_pipeline(  # type: ignore
         device=dev,
         layout=pipeline_layout,
         compute={"module": shader_module, "entry_point": "main"},
     )
 
     # Create and run command encoder
-    command_encoder = utils.create_command_encoder(dev)
-    compute_pass = utils.begin_compute_pass(command_encoder)
-    utils.set_pipeline(compute_pass, compute_pipeline)
-    utils.set_bind_group(compute_pass, bind_group)
+    command_encoder = utils.create_command_encoder(dev)  # type: ignore
+    compute_pass = utils.begin_compute_pass(command_encoder)  # type: ignore
+    utils.set_pipeline(compute_pass, compute_pipeline)  # type: ignore
+    utils.set_bind_group(compute_pass, bind_group)  # type: ignore
 
     # Calculate workgroup dispatch
     workgroups_x, workgroups_y, workgroups_z = calculate_workgroups(
         output_elements, workgroup_size
     )
 
-    utils.dispatch_workgroups(compute_pass, workgroups_x, workgroups_y, workgroups_z)
-    utils.end_compute_pass(compute_pass)
-    cb_buffer = utils.command_encoder_finish(command_encoder)
+    utils.dispatch_workgroups(compute_pass, workgroups_x, workgroups_y, workgroups_z)  # type: ignore
+    utils.end_compute_pass(compute_pass)  # type: ignore
+    cb_buffer = utils.command_encoder_finish(command_encoder)  # type: ignore
 
     # Submit and wait
-    utils.submit(dev, [cb_buffer])
-    utils.sync(dev)
+    utils.submit(dev, [cb_buffer])  # type: ignore
+    utils.sync(dev)  # type: ignore
 
     # Read result and convert back to tensor
-    result_buffer = utils.read_buffer(dev, gpu_output_buffer)
-    return bytes_to_tensor(result_buffer[:output_size], output_shape)
+    result_buffer = utils.read_buffer(dev, gpu_output_buffer)  # type: ignore
+    return bytes_to_tensor(bytes(result_buffer[:output_size]), output_shape)
 
 
 def execute_simple_kernel(kernel_source: str, input_bytes: bytes, num_elements: int) -> bytes:
     """Simple kernel execution for single input/output (compatibility function)."""
     # Create adapter and device
-    adapter = utils.request_adapter_sync(
-        power_preference=webgpu.WGPUPowerPreference_HighPerformance
+    adapter = utils.request_adapter_sync(  # type: ignore
+        power_preference=webgpu.WGPUPowerPreference_HighPerformance  # type: ignore
     )
-    dev = utils.request_device_sync(adapter, [])
+    dev = utils.request_device_sync(adapter, [])  # type: ignore
 
     original_size = len(input_bytes)
 
@@ -194,34 +194,34 @@ def execute_simple_kernel(kernel_source: str, input_bytes: bytes, num_elements: 
         padded_bytes = input_bytes
 
     # Create shader module
-    shader_module = utils.create_shader_module(dev, kernel_source)
+    shader_module = utils.create_shader_module(dev, kernel_source)  # type: ignore
 
     # Create buffers
-    input_buffer = utils.create_buffer(
+    input_buffer = utils.create_buffer(  # type: ignore
         dev,
         aligned_size,
-        webgpu.WGPUBufferUsage_Storage | webgpu.WGPUBufferUsage_CopyDst
+        webgpu.WGPUBufferUsage_Storage | webgpu.WGPUBufferUsage_CopyDst  # type: ignore
     )
-    output_buffer = utils.create_buffer(
+    output_buffer = utils.create_buffer(  # type: ignore
         dev,
         aligned_size,
-        webgpu.WGPUBufferUsage_Storage | webgpu.WGPUBufferUsage_CopySrc
+        webgpu.WGPUBufferUsage_Storage | webgpu.WGPUBufferUsage_CopySrc  # type: ignore
     )
 
     # Write data
-    utils.write_buffer(dev, input_buffer, 0, bytearray(padded_bytes))
+    utils.write_buffer(dev, input_buffer, 0, bytearray(padded_bytes))  # type: ignore
 
     # Setup bindings
     binding_layouts = [
         {
             "binding": 0,
-            "visibility": webgpu.WGPUShaderStage_Compute,
-            "buffer": {"type": webgpu.WGPUBufferBindingType_ReadOnlyStorage},
+            "visibility": webgpu.WGPUShaderStage_Compute,  # type: ignore  # type: ignore
+            "buffer": {"type": webgpu.WGPUBufferBindingType_ReadOnlyStorage},  # type: ignore
         },
         {
             "binding": 1,
-            "visibility": webgpu.WGPUShaderStage_Compute,
-            "buffer": {"type": webgpu.WGPUBufferBindingType_Storage},
+            "visibility": webgpu.WGPUShaderStage_Compute,  # type: ignore  # type: ignore
+            "buffer": {"type": webgpu.WGPUBufferBindingType_Storage},  # type: ignore
         },
     ]
 
@@ -237,31 +237,31 @@ def execute_simple_kernel(kernel_source: str, input_bytes: bytes, num_elements: 
     ]
 
     # Create pipeline
-    bind_group_layout = utils.create_bind_group_layout(device=dev, entries=binding_layouts)
-    pipeline_layout = utils.create_pipeline_layout(device=dev, bind_group_layouts=[bind_group_layout])
-    bind_group = utils.create_bind_group(device=dev, layout=bind_group_layout, entries=bindings)
+    bind_group_layout = utils.create_bind_group_layout(device=dev, entries=binding_layouts)  # type: ignore
+    pipeline_layout = utils.create_pipeline_layout(device=dev, bind_group_layouts=[bind_group_layout])  # type: ignore
+    bind_group = utils.create_bind_group(device=dev, layout=bind_group_layout, entries=bindings)  # type: ignore
 
-    compute_pipeline = utils.create_compute_pipeline(
+    compute_pipeline = utils.create_compute_pipeline(  # type: ignore
         device=dev,
         layout=pipeline_layout,
         compute={"module": shader_module, "entry_point": "main"},
     )
 
     # Execute
-    command_encoder = utils.create_command_encoder(dev)
-    compute_pass = utils.begin_compute_pass(command_encoder)
-    utils.set_pipeline(compute_pass, compute_pipeline)
-    utils.set_bind_group(compute_pass, bind_group)
+    command_encoder = utils.create_command_encoder(dev)  # type: ignore
+    compute_pass = utils.begin_compute_pass(command_encoder)  # type: ignore
+    utils.set_pipeline(compute_pass, compute_pipeline)  # type: ignore
+    utils.set_bind_group(compute_pass, bind_group)  # type: ignore
 
     workgroups_x, workgroups_y, workgroups_z = calculate_workgroups(num_elements)
-    utils.dispatch_workgroups(compute_pass, workgroups_x, workgroups_y, workgroups_z)
+    utils.dispatch_workgroups(compute_pass, workgroups_x, workgroups_y, workgroups_z)  # type: ignore
 
-    utils.end_compute_pass(compute_pass)
-    cb_buffer = utils.command_encoder_finish(command_encoder)
+    utils.end_compute_pass(compute_pass)  # type: ignore
+    cb_buffer = utils.command_encoder_finish(command_encoder)  # type: ignore
 
-    utils.submit(dev, [cb_buffer])
-    utils.sync(dev)
+    utils.submit(dev, [cb_buffer])  # type: ignore
+    utils.sync(dev)  # type: ignore
 
     # Read result
-    result_buffer = utils.read_buffer(dev, output_buffer)
-    return result_buffer[:original_size]
+    result_buffer = utils.read_buffer(dev, output_buffer)  # type: ignore
+    return bytes(result_buffer[:original_size])

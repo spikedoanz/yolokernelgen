@@ -277,8 +277,9 @@ def validate_kernel(
 
             generated_output = webgpu_executor(kernel_source, all_inputs)
 
-            # Compare outputs
-            comparison = compare_outputs(reference_output, generated_output, tolerance, test_case["type"])
+            # Compare outputs (handle tuple outputs by using first element)
+            ref_out = reference_output[0] if isinstance(reference_output, tuple) else reference_output
+            comparison = compare_outputs(ref_out, generated_output, tolerance, test_case["type"])
             comparison["seed"] = test_case["seed"]
 
             validation_results.append(comparison)

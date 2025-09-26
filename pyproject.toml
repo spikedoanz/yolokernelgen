@@ -13,3 +13,6 @@ dependencies = [
 [tool.setuptools.packages.find]
 include = ["yolokernelgen*"]
 exclude = ["extras*", "tests*", "docs*", "examples*"]
+
+[tool.pyright]
+exclude = ["extras/**", "extras"]
