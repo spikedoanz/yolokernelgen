@@ -64,7 +64,7 @@ Requirements:
 - Output buffer should be var<storage, read_write>
 - Use array<f32> for buffer types
 
-Return ONLY the WGSL kernel code enclosed in ```wgsl ... ``` tags. Do not include any explanation."""
+Return the final kernel in enclosed ```wgsl ... ``` tags. Properly reason through your implementation before trying"""
 
     return prompt
 

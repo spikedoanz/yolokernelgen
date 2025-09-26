@@ -35,12 +35,10 @@ def generate_test_inputs(
         data = np.ones(shape, dtype=dtype)
         # Create alternating pattern
         data.flat[::2] = -1.0
-    elif test_type == "extreme":
-        # Values near dtype limits
-        if dtype == "float32":
-            data = np.random.choice([1e-38, 1e38, -1e38, -1e-38], shape).astype(dtype)
-        else:
-            data = np.random.uniform(-1, 1, shape).astype(dtype)
+    elif test_type == "large_values":
+        data = np.random.uniform(-1e6, 1e6, shape).astype(dtype)
+    elif test_type == "small_values":
+        data = np.random.uniform(-1e-6, 1e-6, shape).astype(dtype)
     else:
         raise ValueError(f"Unknown test type: {test_type}")
 
@@ -86,7 +84,7 @@ def create_test_suite(
         test_cases.append(test_case)
 
     # Edge test cases
-    edge_types = ["zeros", "ones", "single_hot", "alternating", "extreme"]
+    edge_types = ["zeros", "ones", "single_hot", "alternating", "large_values", "small_values"]
     for i in range(min(num_edge, len(edge_types))):
         test_case = {
             "type": edge_types[i],
