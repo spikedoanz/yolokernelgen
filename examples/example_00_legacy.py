@@ -131,7 +131,7 @@ def example_simple_identity():
     """
 
     # Test the kernel
-    test_input = np.random.randn(*shape).astype(np.float32)
+    test_input = np.random.randn(*shape).astype(np.float32)  # type: ignore
     input_bytes = test_input.tobytes()
 
     result_bytes = execute_simple_kernel(kernel_source, input_bytes, total_elements)

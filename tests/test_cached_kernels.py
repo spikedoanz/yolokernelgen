@@ -30,7 +30,7 @@ def create_test_data_for_kernel(kernel_info):
         return None
 
     # Create small random test data
-    test_data = np.random.randn(*input_shape).astype(np.float32)
+    test_data = np.random.randn(*input_shape).astype(np.float32)  # type: ignore
     return test_data
 
 

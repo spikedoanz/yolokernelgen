@@ -16,3 +16,4 @@ exclude = ["extras*", "tests*", "docs*", "examples*"]
 
 [tool.pyright]
 exclude = ["extras/**", "extras"]
+
