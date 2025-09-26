@@ -14,7 +14,7 @@ yolokernelgen.webgpu_executor.execute_kernel = mock_execute_kernel
 
 from yolokernelgen import generate_kernel, load_kernel
 from yolokernelgen.config import default_config
-from enhanced_prompts import build_enhanced_system_prompt, build_enhanced_user_prompt, get_enhanced_example_kernels
+from docs.enhanced_prompts import build_enhanced_system_prompt, build_enhanced_user_prompt, get_enhanced_example_kernels
 
 # Monkey patch the prompts module to use enhanced prompts
 import yolokernelgen.prompts

@@ -3,7 +3,7 @@
 import os
 import hashlib
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Callable
+from typing import Dict, List, Any, Optional, Callable, Union
 
 from .config import default_config
 from .storage import save_kernel, find_kernel
@@ -100,7 +100,7 @@ def select_relevant_examples(
 
 
 def sample_from_llm(
-    messages: List[Dict[str, str]],
+    messages: List[Dict[str, Any]],
     model: str = "gpt-4o",
     temperature: float = 0.7,
     max_tokens: int = 4000
