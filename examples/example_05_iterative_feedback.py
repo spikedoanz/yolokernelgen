@@ -90,11 +90,11 @@ def example_iterative_conv3d():
         kernel_data = load_kernel(kernel_path)
 
         print(f"✓ Final kernel: {kernel_path.name}")
-        print(f"✓ Validation: {kernel_data['validation']['num_passed']}/{kernel_data['validation']['num_total']} tests passed")
-        print(f"✓ Total tokens used: {kernel_data['llm_response']['usage']['total_tokens']}")
+        print(f"✓ Validation: {kernel_data.validation.num_passed}/{kernel_data.validation.num_total} tests passed")
+        print(f"✓ Total tokens used: {kernel_data.llm_response.usage.get('total_tokens', 0)}")
 
         # Show the generated kernel (first 500 chars)
-        kernel_source = kernel_data['llm_response']['extracted_kernel']
+        kernel_source = kernel_data.llm_response.extracted_kernel
         print(f"\n=== Generated WGSL Kernel (preview) ===")
         print(kernel_source[:500] + "..." if len(kernel_source) > 500 else kernel_source)
 

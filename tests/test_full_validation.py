@@ -51,8 +51,8 @@ def test_validated_relu():
 
         # Show validation details
         for i, test_case in enumerate(kernel_data.validation.test_cases[:3]):
-            status = "✓" if test_case['passed'] else "✗"
-            print(f"  Test {i+1} ({test_case['type']}): {status} max_diff={test_case.get('max_diff', 'N/A'):.2e}")
+            status = "✓" if test_case.passed else "✗"
+            print(f"  Test {i+1} ({test_case.test_type}): {status} max_diff={getattr(test_case, 'max_diff', 'N/A'):.2e}")
 
         return kernel_data.status == 'correct'
 
@@ -148,7 +148,7 @@ def test_validated_conv2d():
             print("Failed test cases:")
             for test_case in kernel_data.validation.test_cases:
                 if not test_case.passed:
-                    print(f"  {test_case['type']}: max_diff={test_case.get('max_diff', 'N/A'):.2e}")
+                    print(f"  {test_case.test_type}: max_diff={getattr(test_case, 'max_diff', 'N/A'):.2e}")
 
         return kernel_data.status == 'correct'
 

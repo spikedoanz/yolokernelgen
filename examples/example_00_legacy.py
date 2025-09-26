@@ -45,7 +45,7 @@ def example_relu():
 
         # Load and use the kernel
         kernel_data = load_kernel(kernel_path)
-        kernel_source = kernel_data["llm_response"]["extracted_kernel"]
+        kernel_source = kernel_data.llm_response.extracted_kernel
 
         # Test with real data
         test_input = np.random.randn(8, 16, 32, 32).astype(np.float32)
@@ -134,7 +134,7 @@ def example_simple_identity():
     test_input = np.random.randn(*shape).astype(np.float32)
     input_bytes = test_input.tobytes()
 
-    result_bytes = execute_simple_kernel(kernel_source, input_bytes, total_elements)
+    result_bytes = execute_simple_kernel(kernel_source, input_bytes, int(total_elements))
     result = np.frombuffer(result_bytes, dtype=np.float32).reshape(shape)
 
     matches = np.allclose(test_input, result)

@@ -44,12 +44,12 @@ def example_add_one():
         kernel_data = load_kernel(kernel_path)
 
         print(f"✓ Kernel generated: {kernel_path.name}")
-        print(f"✓ Status: {kernel_data['status']}")
-        print(f"✓ Tests passed: {kernel_data['validation']['num_passed']}/{kernel_data['validation']['num_total']}")
-        print(f"✓ Tokens used: {kernel_data['llm_response']['usage']['total_tokens']}")
+        print(f"✓ Status: {kernel_data.status}")
+        print(f"✓ Tests passed: {kernel_data.validation.num_passed}/{kernel_data.validation.num_total}")
+        print(f"✓ Tokens used: {kernel_data.llm_response.usage.get('total_tokens', 0)}")
 
         # Show the generated WGSL kernel (first 300 chars)
-        kernel_code = kernel_data['llm_response']['extracted_kernel']
+        kernel_code = kernel_data.llm_response.extracted_kernel
         print("\nGenerated WGSL kernel (preview):")
         print("-" * 40)
         print(kernel_code[:300] + "...")
@@ -88,13 +88,13 @@ def example_relu():
         kernel_data = load_kernel(kernel_path)
 
         print(f"✓ ReLU kernel: {kernel_path.name}")
-        print(f"✓ Validation: {kernel_data['validation']['all_passed']}")
+        print(f"✓ Validation: {kernel_data.validation.all_passed}")
 
         # Show that ReLU correctly clamps negative values
-        test_results = kernel_data['validation']['test_cases']
-        zeros_test = next((t for t in test_results if t['type'] == 'zeros'), None)
+        test_results = kernel_data.validation.test_cases
+        zeros_test = next((t for t in test_results if t.test_type == 'zeros'), None)
         if zeros_test:
-            print(f"✓ Zeros test passed: {zeros_test['passed']} (max_diff: {zeros_test['max_diff']:.2e})")
+            print(f"✓ Zeros test passed: {zeros_test.passed} (max_diff: {getattr(zeros_test, 'max_diff', 0.0):.2e})")
 
         return True
 

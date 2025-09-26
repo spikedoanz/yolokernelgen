@@ -68,11 +68,11 @@ def example_conv_relu_fusion():
         kernel_data = load_kernel(kernel_path)
 
         print(f"✓ Fused kernel: {kernel_path.name}")
-        print(f"✓ Validation: {kernel_data['validation']['all_passed']}")
-        print(f"✓ Tokens: {kernel_data['llm_response']['usage']['total_tokens']}")
+        print(f"✓ Validation: {kernel_data.validation.all_passed}")
+        print(f"✓ Tokens: {kernel_data.llm_response.usage.get('total_tokens', 0)}")
 
         # Analyze fusion characteristics
-        kernel_code = kernel_data['llm_response']['extracted_kernel']
+        kernel_code = kernel_data.llm_response.extracted_kernel
         has_conv_loops = kernel_code.count("for") >= 3
         has_relu_activation = "max(" in kernel_code and "0.0" in kernel_code
         single_output_write = kernel_code.count("output[") <= 3  # Should write once
@@ -135,8 +135,8 @@ def example_custom_configuration():
         kernel_data = load_kernel(kernel_path)
 
         print(f"✓ Custom config kernel: {kernel_path.name}")
-        print(f"✓ Validation (5 tests): {kernel_data['validation']['all_passed']}")
-        print(f"✓ Tests: {kernel_data['validation']['num_passed']}/{kernel_data['validation']['num_total']}")
+        print(f"✓ Validation (5 tests): {kernel_data.validation.all_passed}")
+        print(f"✓ Tests: {kernel_data.validation.num_passed}/{kernel_data.validation.num_total}")
 
         return True
 
@@ -174,7 +174,7 @@ def analyze_generation_performance():
             try:
                 from pathlib import Path
                 kernel_data = load_kernel(Path(kernel_info["filepath"]))
-                tokens = kernel_data['llm_response']['usage']['total_tokens']
+                tokens = kernel_data.llm_response.usage.get('total_tokens', 0)
                 operation = kernel_info['operation']
 
                 total_tokens += tokens

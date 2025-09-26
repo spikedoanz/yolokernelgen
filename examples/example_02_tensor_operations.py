@@ -42,11 +42,11 @@ def example_matrix_multiplication():
 
         print(f"✓ MatMul kernel: {kernel_path.name}")
         print(f"✓ Input shapes: {input_shapes[0]} @ {input_shapes[1]} = {output_shapes[0]}")
-        print(f"✓ Validation: {kernel_data['validation']['all_passed']}")
-        print(f"✓ Tokens: {kernel_data['llm_response']['usage']['total_tokens']}")
+        print(f"✓ Validation: {kernel_data.validation.all_passed}")
+        print(f"✓ Tokens: {kernel_data.llm_response.usage.get('total_tokens', 0)}")
 
         # Examine the generated kernel for key features
-        kernel_code = kernel_data['llm_response']['extracted_kernel']
+        kernel_code = kernel_data.llm_response.extracted_kernel
         has_dot_product = "sum" in kernel_code.lower() and "+=" in kernel_code
         has_nested_indexing = "row" in kernel_code.lower() and "col" in kernel_code.lower()
 
@@ -88,7 +88,7 @@ def example_element_wise_add():
 
         print(f"✓ Addition kernel: {kernel_path.name}")
         print(f"✓ Handles two input tensors: {len(input_shapes)} inputs")
-        print(f"✓ Validation: {kernel_data['validation']['all_passed']}")
+        print(f"✓ Validation: {kernel_data.validation.all_passed}")
 
         return True
 

@@ -72,12 +72,12 @@ def example_basic_conv2d():
         kernel_data = load_kernel(kernel_path)
 
         print(f"✓ Conv2D kernel: {kernel_path.name}")
-        print(f"✓ Validation: {kernel_data['validation']['all_passed']}")
-        print(f"✓ Tests passed: {kernel_data['validation']['num_passed']}/{kernel_data['validation']['num_total']}")
-        print(f"✓ Tokens used: {kernel_data['llm_response']['usage']['total_tokens']}")
+        print(f"✓ Validation: {kernel_data.validation.all_passed}")
+        print(f"✓ Tests passed: {kernel_data.validation.num_passed}/{kernel_data.validation.num_total}")
+        print(f"✓ Tokens used: {kernel_data.llm_response.usage.get('total_tokens', 0)}")
 
         # Analyze the kernel complexity
-        kernel_code = kernel_data['llm_response']['extracted_kernel']
+        kernel_code = kernel_data.llm_response.extracted_kernel
         has_nested_loops = kernel_code.count("for") >= 3  # Should have ic, kh, kw loops
         has_nchw_indexing = "* IN_CHANNELS" in kernel_code or "c *" in kernel_code
         has_bias_handling = "bias[" in kernel_code
@@ -137,10 +137,10 @@ def example_conv2d_with_padding():
 
         print(f"✓ Padded Conv2D: {kernel_path.name}")
         print(f"✓ Input {input_shapes[0]} -> Output {output_shapes[0]} (preserved size)")
-        print(f"✓ Validation: {kernel_data['validation']['all_passed']}")
+        print(f"✓ Validation: {kernel_data.validation.all_passed}")
 
         # Padding requires bounds checking
-        kernel_code = kernel_data['llm_response']['extracted_kernel']
+        kernel_code = kernel_data.llm_response.extracted_kernel
         has_bounds_check = ("if" in kernel_code and ">" in kernel_code and "<" in kernel_code)
         has_padding_logic = "padding" in kernel_code.lower() or "PADDING" in kernel_code
 
@@ -182,8 +182,8 @@ def show_conv_kernel_details():
             try:
                 from pathlib import Path
                 kernel_data = load_kernel(Path(filepath))
-                tokens = kernel_data['llm_response']['usage']['total_tokens']
-                tests_passed = kernel_data['validation']['num_passed']
+                tokens = kernel_data.llm_response.usage.get('total_tokens', 0)
+                tests_passed = kernel_data.validation.num_passed
                 print(f"    Tokens: {tokens}, Tests: {tests_passed}/10 passed")
             except:
                 pass
