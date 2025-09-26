@@ -5,6 +5,9 @@ from typing import Dict, List, Any, Optional
 from .types import LLMRequest, LLMResponse
 from .exceptions import LLMError
 from .prompts import build_system_prompt, build_user_prompt, extract_kernel_from_response, get_example_kernels, build_feedback_aware_prompt
+from .logging_config import get_llm_logger
+
+logger = get_llm_logger()
 
 
 class LLMClient:
@@ -30,6 +33,7 @@ class LLMClient:
         max_tokens: int = 4000
     ) -> LLMResponse:
         """Sample from OpenAI LLM and return structured response."""
+        logger.debug(f"Calling LLM with model={model}, temp={temperature}, max_tokens={max_tokens}")
         try:
             response = self.client.chat.completions.create(
                 model=model,
@@ -42,6 +46,7 @@ class LLMClient:
             extracted_kernel = extract_kernel_from_response(raw_completion)
 
             if extracted_kernel is None:
+                logger.error("Failed to extract kernel from LLM response")
                 raise LLMError("Failed to extract kernel from LLM response")
 
             return LLMResponse(
@@ -54,7 +59,9 @@ class LLMClient:
                     "total_tokens": response.usage.total_tokens
                 }
             )
+            logger.debug(f"LLM response received, tokens used: {response.usage.total_tokens}")
         except Exception as e:
+            logger.error(f"LLM API call failed: {e}")
             raise LLMError(f"LLM API call failed: {e}")
 
 

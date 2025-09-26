@@ -13,6 +13,9 @@ from .validator import create_test_suite, validate_kernel
 from .storage import save_kernel, find_kernel
 from .webgpu_executor import execute_kernel
 from .knowledge_base import add_successful_kernel, get_relevant_success_examples
+from .logging_config import get_runtime_logger
+
+logger = get_runtime_logger()
 
 
 async def attempt_generation(
@@ -163,7 +166,7 @@ async def generate_kernel(
         )
 
         if existing:
-            print(f"Found existing kernel: {existing}")
+            logger.info(f"Found existing kernel: {existing}")
             return existing
 
     # Attempt generation up to max_samples times with learning
@@ -180,7 +183,7 @@ async def generate_kernel(
     )
 
     for attempt in range(max_samples):
-        print(f"Generation attempt {attempt + 1}/{max_samples}")
+        logger.info(f"Generation attempt {attempt + 1}/{max_samples}")
 
         try:
             kernel_data = await attempt_generation(
@@ -199,7 +202,7 @@ async def generate_kernel(
 
             # Save kernel
             kernel_path = save_kernel(kernel_data.to_dict(), config.cache_dir)
-            print(f"Kernel saved: {kernel_path}")
+            logger.info(f"Kernel saved: {kernel_path}")
 
             # Check validation results
             validation_passed = kernel_data.validation.all_passed
@@ -207,21 +210,21 @@ async def generate_kernel(
 
             if validation_passed or not has_validation:
                 if has_validation:
-                    print("✓ Kernel validated successfully!")
+                    logger.info("✓ Kernel validated successfully!")
                 else:
-                    print("✓ Kernel generated successfully (validation skipped)")
+                    logger.info("✓ Kernel generated successfully (validation skipped)")
 
                 # Add successful kernel to knowledge base (only if validated)
                 if has_validation and validation_passed:
                     try:
                         add_successful_kernel(kernel_data.to_dict(), config.cache_dir)
-                        print("✓ Added to knowledge base for future learning")
+                        logger.info("✓ Added to knowledge base for future learning")
                     except Exception as e:
-                        print(f"Warning: Failed to add kernel to knowledge base: {e}")
+                        logger.warning(f"Failed to add kernel to knowledge base: {e}")
 
                 return kernel_path
             else:
-                print(f"✗ Validation failed: {kernel_data.validation.num_passed}/{kernel_data.validation.num_total} tests passed")
+                logger.warning(f"✗ Validation failed: {kernel_data.validation.num_passed}/{kernel_data.validation.num_total} tests passed")
                 last_error = "Validation failed"
 
                 # Store failed attempt for learning
@@ -236,14 +239,14 @@ async def generate_kernel(
                 # Show feedback summary if available
                 failure_summary = kernel_data.validation.failure_summary
                 if failure_summary:
-                    print(f"  Common issues: {', '.join(failure_summary.get('common_issues', []))}")
+                    logger.info(f"  Common issues: {', '.join(failure_summary.get('common_issues', []))}")
                     for feedback in failure_summary.get("specific_feedback", [])[:2]:  # Show top 2
-                        print(f"  • {feedback}")
+                        logger.info(f"  • {feedback}")
                     if failure_summary.get("performance_note"):
-                        print(f"  Note: {failure_summary['performance_note']}")
+                        logger.info(f"  Note: {failure_summary['performance_note']}")
 
         except Exception as e:
-            print(f"Generation attempt failed: {e}")
+            logger.error(f"Generation attempt failed: {e}")
             last_error = str(e)
             continue
 
@@ -289,9 +292,9 @@ async def batch_generate_kernels(
         try:
             path = await task
             results.append((i, path))
-            print(f"Completed kernel {i + 1}/{len(operations)}")
+            logger.info(f"Completed kernel {i + 1}/{len(operations)}")
         except Exception as e:
-            print(f"Failed to generate kernel {i + 1}: {e}")
+            logger.error(f"Failed to generate kernel {i + 1}: {e}")
             results.append((i, None))
 
     # Sort results by original order

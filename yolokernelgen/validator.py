@@ -5,6 +5,9 @@ import torch
 from typing import List, Dict, Any, Callable, Optional
 from .types import ValidationResult, TestCase
 from .exceptions import ValidationError
+from .logging_config import get_validator_logger
+
+logger = get_validator_logger()
 
 
 def generate_test_inputs(
@@ -270,6 +273,7 @@ async def validate_kernel(
     dtype: str = "float32"
 ) -> ValidationResult:
     """Validate WebGPU kernel against PyTorch reference."""
+    logger.debug(f"Validating kernel with {len(test_suite)} test cases, tolerance={tolerance}")
     try:
         validated_test_cases = []
         all_passed = True
@@ -324,17 +328,22 @@ async def validate_kernel(
         # Generate failure summary for feedback
         failure_summary = generate_failure_summary(validated_test_cases) if not all_passed else None
 
+        num_passed = sum(1 for tc in validated_test_cases if tc.passed)
+        num_total = len(validated_test_cases)
+        logger.info(f"Validation completed: {num_passed}/{num_total} tests passed")
+
         return ValidationResult(
             tolerance=tolerance,
             dtype=dtype,
             test_cases=validated_test_cases,
             all_passed=all_passed,
-            num_passed=sum(1 for tc in validated_test_cases if tc.passed),
-            num_total=len(validated_test_cases),
+            num_passed=num_passed,
+            num_total=num_total,
             failure_summary=failure_summary
         )
 
     except Exception as e:
+        logger.error(f"Validation failed: {e}")
         raise ValidationError(f"Validation failed: {e}")
 
 
