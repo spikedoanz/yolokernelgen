@@ -81,7 +81,7 @@ def test_conv2d_simple():
 
         # Load and analyze
         kernel_data = load_kernel(kernel_path)
-        kernel_source = kernel_data["llm_response"]["extracted_kernel"]
+        kernel_source = kernel_data.llm_response.extracted_kernel
 
         print("\n=== Generated Conv2D WGSL Kernel ===")
         print(kernel_source)
@@ -99,7 +99,7 @@ def test_conv2d_simple():
         print(f"Handles bias addition: {has_bias_add}")
 
         # Token usage
-        usage = kernel_data["llm_response"]["usage"]
+        usage = kernel_data.llm_response.usage
         print("\n=== Token Usage ===")
         print(f"Total tokens: {usage.get('total_tokens', 'N/A')}")
         print(f"Prompt/Completion: {usage.get('prompt_tokens', 'N/A')}/{usage.get('completion_tokens', 'N/A')}")
@@ -153,7 +153,7 @@ def test_conv2d_with_padding():
         )
 
         kernel_data = load_kernel(kernel_path)
-        kernel_source = kernel_data["llm_response"]["extracted_kernel"]
+        kernel_source = kernel_data.llm_response.extracted_kernel
 
         print("\n=== Conv2D Padded Kernel (first 800 chars) ===")
         print(kernel_source[:800] + "..." if len(kernel_source) > 800 else kernel_source)

@@ -45,16 +45,16 @@ def test_validated_relu():
 
         kernel_data = load_kernel(kernel_path)
 
-        print(f"✓ Kernel status: {kernel_data['status']}")
-        print(f"✓ Validation passed: {kernel_data['validation']['all_passed']}")
-        print(f"✓ Tests passed: {kernel_data['validation']['num_passed']}/{kernel_data['validation']['num_total']}")
+        print(f"✓ Kernel status: {kernel_data.status}")
+        print(f"✓ Validation passed: {kernel_data.validation.all_passed}")
+        print(f"✓ Tests passed: {kernel_data.validation.num_passed}/{kernel_data.validation.num_total}")
 
         # Show validation details
-        for i, test_case in enumerate(kernel_data['validation']['test_cases'][:3]):
+        for i, test_case in enumerate(kernel_data.validation.test_cases[:3]):
             status = "✓" if test_case['passed'] else "✗"
             print(f"  Test {i+1} ({test_case['type']}): {status} max_diff={test_case.get('max_diff', 'N/A'):.2e}")
 
-        return kernel_data['status'] == 'correct'
+        return kernel_data.status == 'correct'
 
     except Exception as e:
         print(f"✗ Failed: {e}")
@@ -93,10 +93,10 @@ def test_validated_add():
 
         kernel_data = load_kernel(kernel_path)
 
-        print(f"✓ Status: {kernel_data['status']}")
-        print(f"✓ Validation: {kernel_data['validation']['all_passed']}")
+        print(f"✓ Status: {kernel_data.status}")
+        print(f"✓ Validation: {kernel_data.validation.all_passed}")
 
-        return kernel_data['status'] == 'correct'
+        return kernel_data.status == 'correct'
 
     except Exception as e:
         print(f"✗ Failed: {e}")
@@ -141,16 +141,16 @@ def test_validated_conv2d():
 
         kernel_data = load_kernel(kernel_path)
 
-        print(f"✓ Status: {kernel_data['status']}")
-        print(f"✓ Validation: {kernel_data['validation']['all_passed']}")
+        print(f"✓ Status: {kernel_data.status}")
+        print(f"✓ Validation: {kernel_data.validation.all_passed}")
 
-        if not kernel_data['validation']['all_passed']:
+        if not kernel_data.validation.all_passed:
             print("Failed test cases:")
-            for test_case in kernel_data['validation']['test_cases']:
-                if not test_case['passed']:
+            for test_case in kernel_data.validation.test_cases:
+                if not test_case.passed:
                     print(f"  {test_case['type']}: max_diff={test_case.get('max_diff', 'N/A'):.2e}")
 
-        return kernel_data['status'] == 'correct'
+        return kernel_data.status == 'correct'
 
     except Exception as e:
         print(f"✗ Failed: {e}")

@@ -57,8 +57,8 @@ def demo_kernel_pipeline():
         conv2d_kernel_data = load_kernel(Path(conv2d_info["filepath"]))
         relu_kernel_data = load_kernel(Path(relu_info["filepath"]))
 
-        conv2d_source = conv2d_kernel_data["llm_response"]["extracted_kernel"]
-        relu_source = relu_kernel_data["llm_response"]["extracted_kernel"]
+        conv2d_source = conv2d_kernel_data.llm_response.extracted_kernel
+        relu_source = relu_kernel_data.llm_response.extracted_kernel
 
         print("\n=== Conv2D Kernel (first 300 chars) ===")
         print(conv2d_source[:300] + "...")

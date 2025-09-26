@@ -69,7 +69,7 @@ def test_enhanced_conv2d():
         )
 
         kernel_data = load_kernel(kernel_path)
-        kernel_source = kernel_data["llm_response"]["extracted_kernel"]
+        kernel_source = kernel_data.llm_response.extracted_kernel
 
         print("\n=== Enhanced Conv2D Kernel ===")
         print(kernel_source)
@@ -86,7 +86,7 @@ def test_enhanced_conv2d():
         print(f"Has convolution loops: {has_nested_loops}")
         print(f"Proper bias handling: {has_bias_init}")
 
-        usage = kernel_data["llm_response"]["usage"]
+        usage = kernel_data.llm_response.usage
         print(f"\nTokens: {usage.get('total_tokens', 'N/A')} (prompt: {usage.get('prompt_tokens', 'N/A')})")
 
         return True
@@ -127,7 +127,7 @@ def test_enhanced_matmul():
         )
 
         kernel_data = load_kernel(kernel_path)
-        kernel_source = kernel_data["llm_response"]["extracted_kernel"]
+        kernel_source = kernel_data.llm_response.extracted_kernel
 
         print("\n=== Enhanced MatMul Kernel ===")
         print(kernel_source)
@@ -176,7 +176,7 @@ def test_enhanced_relu():
         )
 
         kernel_data = load_kernel(kernel_path)
-        kernel_source = kernel_data["llm_response"]["extracted_kernel"]
+        kernel_source = kernel_data.llm_response.extracted_kernel
 
         print("\n=== Enhanced ReLU Kernel ===")
         print(kernel_source)

@@ -74,7 +74,7 @@ def test_conv2d_relu_fusion():
         )
 
         kernel_data = load_kernel(kernel_path)
-        kernel_source = kernel_data["llm_response"]["extracted_kernel"]
+        kernel_source = kernel_data.llm_response.extracted_kernel
 
         print("\n=== Fused Conv2D + ReLU Kernel ===")
         print(kernel_source)
@@ -92,7 +92,7 @@ def test_conv2d_relu_fusion():
         print(f"Single pass computation: {single_pass}")
 
         # Token usage for complex fused kernel
-        usage = kernel_data["llm_response"]["usage"]
+        usage = kernel_data.llm_response.usage
         print(f"\nFused kernel tokens: {usage.get('total_tokens', 'N/A')}")
 
         return has_conv_loops and has_relu_activation
